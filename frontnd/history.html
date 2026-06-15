@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chat History — Browse and search your past conversations with CalHelpr.">
+    <title>Chat History — CalHelpr</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Allerta+Stencil&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar (Desktop) -->
+        <aside class="sidebar">
+            <a href="index.html" class="sidebar-brand">
+                <span class="brand-text">CalHelpr</span>
+                <i class="bi bi-plus-lg brand-cross"></i>
+            </a>
+
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item" id="nav-new-chat-hist">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>New Chat</span>
+                </a>
+                <a href="history.html" class="nav-item active" id="nav-library-hist">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>History</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+
+            <nav class="sidebar-nav">
+                <a href="emergency.html" class="nav-item nav-emergency" id="nav-emergency-sidebar-hist">
+                    <div class="emergency-icon">
+                        <i class="bi bi-plus-lg"></i>
+                    </div>
+                    <span>Emergency Numbers</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-content">
+                <p class="sidebar-section-label">Recent</p>
+                <div class="chat-list">
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>Heart Attack Symptoms</span>
+                    </a>
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>What to Do During an Earthquake</span>
+                    </a>
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>Emergency Kit Preparation</span>
+                    </a>
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>Basic First-Aid Steps</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p class="sidebar-signin-prompt">
+                    <a href="login.html">Sign in</a> to save your conversations.
+                </p>
+                <div class="user-profile">
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <span>Guest</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content — History Page -->
+        <main class="main-content">
+            <header class="top-bar">
+                <a href="index.html" class="mobile-logo">
+                    <span class="brand-text">CalHelpr</span>
+                    <i class="bi bi-plus-lg brand-cross"></i>
+                </a>
+                <div class="spacer"></div>
+                <a href="login.html" class="sign-in-btn" id="sign-in-link-history">Sign In</a>
+            </header>
+
+            <div class="history-page">
+                <!-- Search -->
+                <div class="history-search-wrap">
+                    <div class="history-search-box">
+                        <i class="fa-solid fa-magnifying-glass history-search-icon"></i>
+                        <input type="text" id="history-search-input" class="history-search-input"
+                            placeholder="Search conversations...">
+                    </div>
+                </div>
+
+                <!-- Chat list grouped by date -->
+                <div class="history-list" id="history-list">
+                    <!-- Today -->
+                    <div class="history-date-group">
+                        <h2 class="history-date-label">Today</h2>
+                        <a href="index.html" class="history-item" id="hist-1">
+                            <div class="history-item-icon">
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                            <div class="history-item-body">
+                                <span class="history-item-title">Heart Attack Symptoms</span>
+                                <span class="history-item-preview">What are the early warning signs of a heart attack
+                                    and how to respond?</span>
+                            </div>
+                            <span class="history-item-time">2:45 PM</span>
+                        </a>
+                        <a href="index.html" class="history-item" id="hist-2">
+                            <div class="history-item-icon">
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                            <div class="history-item-body">
+                                <span class="history-item-title">Basic First-Aid Steps</span>
+                                <span class="history-item-preview">A quick overview of first-aid procedures for burns
+                                    and fractures.</span>
+                            </div>
+                            <span class="history-item-time">11:20 AM</span>
+                        </a>
+                    </div>
+
+                    <!-- Yesterday -->
+                    <div class="history-date-group">
+                        <h2 class="history-date-label">Yesterday</h2>
+                        <a href="index.html" class="history-item" id="hist-3">
+                            <div class="history-item-icon">
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                            <div class="history-item-body">
+                                <span class="history-item-title">What to Do During an Earthquake</span>
+                                <span class="history-item-preview">Step-by-step safety actions before, during, and after
+                                    an earthquake.</span>
+                            </div>
+                            <span class="history-item-time">7:10 PM</span>
+                        </a>
+                        <a href="index.html" class="history-item" id="hist-4">
+                            <div class="history-item-icon">
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                            <div class="history-item-body">
+                                <span class="history-item-title">Emergency Kit Preparation</span>
+                                <span class="history-item-preview">Essential items to include in your household
+                                    emergency preparedness kit.</span>
+                            </div>
+                            <span class="history-item-time">3:35 PM</span>
+                        </a>
+                    </div>
+
+                    <!-- Last Week -->
+                    <div class="history-date-group">
+                        <h2 class="history-date-label">Last Week</h2>
+                        <a href="index.html" class="history-item" id="hist-5">
+                            <div class="history-item-icon">
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                            <div class="history-item-body">
+                                <span class="history-item-title">CPR Technique Walkthrough</span>
+                                <span class="history-item-preview">Hands-only CPR steps for adults and children in
+                                    emergencies.</span>
+                            </div>
+                            <span class="history-item-time">Jun 9</span>
+                        </a>
+                        <a href="index.html" class="history-item" id="hist-6">
+                            <div class="history-item-icon">
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                            <div class="history-item-body">
+                                <span class="history-item-title">Tornado Safety Tips</span>
+                                <span class="history-item-preview">Best practices for staying safe during a tornado
+                                    warning.</span>
+                            </div>
+                            <span class="history-item-time">Jun 8</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Mobile Bottom Bar -->
+        <nav class="mobile-bottom-bar">
+            <a href="index.html" class="bottom-bar-item" id="nav-chat-history">
+                <i class="fa-regular fa-message"></i>
+                <span>Chat</span>
+            </a>
+            <a href="emergency.html" class="bottom-bar-item emergency-mobile" id="nav-emergency-history">
+                <div class="emergency-icon-mobile">
+                    <i class="bi bi-plus-lg"></i>
+                </div>
+                <span>Emergency</span>
+            </a>
+            <a href="history.html" class="bottom-bar-item active" id="nav-history-history">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>History</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="history.js"></script>
+</body>
+
+</html>

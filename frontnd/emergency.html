@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Emergency Numbers — Quick access to critical hotlines.">
+    <title>Emergency Numbers — CalHelpr</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Allerta+Stencil&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar (Desktop) -->
+        <aside class="sidebar">
+            <!-- Brand -->
+            <a href="index.html" class="sidebar-brand">
+                <span class="brand-text">CalHelpr</span>
+                <i class="bi bi-plus-lg brand-cross"></i>
+            </a>
+
+            <!-- Primary nav -->
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item" id="nav-new-chat">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>New Chat</span>
+                </a>
+                <a href="history.html" class="nav-item" id="nav-library">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>History</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Secondary nav -->
+            <nav class="sidebar-nav">
+                <a href="emergency.html" class="nav-item nav-emergency active" id="nav-emergency-sidebar">
+                    <div class="emergency-icon">
+                        <i class="bi bi-plus-lg"></i>
+                    </div>
+                    <span>Emergency Numbers</span>
+                </a>
+            </nav>
+
+            <!-- Chat history -->
+            <div class="sidebar-content">
+                <p class="sidebar-section-label">Recent</p>
+                <div class="chat-list">
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>Heart Attack Symptoms</span>
+                    </a>
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>What to Do During an Earthquake</span>
+                    </a>
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>Emergency Kit Preparation</span>
+                    </a>
+                    <a href="#" class="chat-item">
+                        <i class="fa-regular fa-message"></i>
+                        <span>Basic First-Aid Steps</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Sign-in prompt + guest -->
+            <div class="sidebar-footer">
+                <p class="sidebar-signin-prompt">
+                    <a href="login.html">Sign in</a> to save your conversations.
+                </p>
+                <div class="user-profile">
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <span>Guest</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <a href="index.html" class="mobile-logo">
+                    <div class="brand-text">CalHelpr</div>
+                    <i class="bi bi-plus-lg brand-cross"></i>
+                </a>
+                <div class="spacer"></div>
+                <a href="login.html" class="sign-in-btn">Sign In</a>
+            </header>
+
+            <!-- Emergency Content -->
+            <div class="emergency-page">
+                <div class="emergency-header">
+                    <h1 class="emergency-title">Emergency Contacts</h1>
+                    <p class="emergency-subtitle">Tap a number below for more information or to call immediately.</p>
+                </div>
+
+                <div class="emergency-grid">
+                    <!-- Item 1 -->
+                    <div class="emergency-card">
+                        <div class="emergency-card-header">
+                            <div class="emergency-card-icon general-icon">
+                                <i class="fa-solid fa-phone"></i>
+                            </div>
+                            <div class="emergency-card-title">911 General Emergency</div>
+                            <i class="fa-solid fa-chevron-down emergency-card-arrow"></i>
+                        </div>
+                        <div class="emergency-card-body">
+                            <p class="emergency-card-desc">Call 911 for life-threatening emergencies, crimes in progress, or immediate medical assistance. Do not use for non-emergencies.</p>
+                            <a href="tel:911" class="emergency-call-btn">
+                                <i class="fa-solid fa-phone-volume"></i> Call 911
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="emergency-card">
+                        <div class="emergency-card-header">
+                            <div class="emergency-card-icon mental-icon">
+                                <i class="fa-solid fa-hand-holding-heart"></i>
+                            </div>
+                            <div class="emergency-card-title">988 Suicide & Crisis</div>
+                            <i class="fa-solid fa-chevron-down emergency-card-arrow"></i>
+                        </div>
+                        <div class="emergency-card-body">
+                            <p class="emergency-card-desc">The 988 Lifeline provides 24/7, free and confidential support for people in distress, prevention and crisis resources for you or your loved ones.</p>
+                            <a href="tel:988" class="emergency-call-btn">
+                                <i class="fa-solid fa-phone-volume"></i> Call 988
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="emergency-card">
+                        <div class="emergency-card-header">
+                            <div class="emergency-card-icon poison-icon">
+                                <i class="fa-solid fa-flask"></i>
+                            </div>
+                            <div class="emergency-card-title">Poison Control</div>
+                            <i class="fa-solid fa-chevron-down emergency-card-arrow"></i>
+                        </div>
+                        <div class="emergency-card-body">
+                            <p class="emergency-card-desc">Expert advice for poisoning emergencies and questions. Available 24/7. Call if you suspect a poisoning has occurred.</p>
+                            <a href="tel:18002221222" class="emergency-call-btn">
+                                <i class="fa-solid fa-phone-volume"></i> Call 1-800-222-1222
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="emergency-card">
+                        <div class="emergency-card-header">
+                            <div class="emergency-card-icon non-icon">
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+                            <div class="emergency-card-title">311 Non-Emergency</div>
+                            <i class="fa-solid fa-chevron-down emergency-card-arrow"></i>
+                        </div>
+                        <div class="emergency-card-body">
+                            <p class="emergency-card-desc">Use 311 to find information about services, make complaints, or report problems like graffiti or road damage to your local government.</p>
+                            <a href="tel:311" class="emergency-call-btn">
+                                <i class="fa-solid fa-phone-volume"></i> Call 311
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Item 5 -->
+                    <div class="emergency-card">
+                        <div class="emergency-card-header">
+                            <div class="emergency-card-icon violence-icon">
+                                <i class="fa-solid fa-shield-heart"></i>
+                            </div>
+                            <div class="emergency-card-title">Domestic Violence</div>
+                            <i class="fa-solid fa-chevron-down emergency-card-arrow"></i>
+                        </div>
+                        <div class="emergency-card-body">
+                            <p class="emergency-card-desc">National Domestic Violence Hotline. Essential tools and support to help survivors of domestic violence so they can live their lives free of abuse.</p>
+                            <a href="tel:18007997233" class="emergency-call-btn">
+                                <i class="fa-solid fa-phone-volume"></i> Call 1-800-799-7233
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Item 6 -->
+                    <div class="emergency-card">
+                        <div class="emergency-card-header">
+                            <div class="emergency-card-icon substance-icon">
+                                <i class="fa-solid fa-capsules"></i>
+                            </div>
+                            <div class="emergency-card-title">SAMHSA Helpline</div>
+                            <i class="fa-solid fa-chevron-down emergency-card-arrow"></i>
+                        </div>
+                        <div class="emergency-card-body">
+                            <p class="emergency-card-desc">Substance Abuse and Mental Health Services Administration. Free, confidential, 24/7 treatment referral and information service.</p>
+                            <a href="tel:18006624357" class="emergency-call-btn">
+                                <i class="fa-solid fa-phone-volume"></i> Call 1-800-662-4357
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Mobile Bottom Bar -->
+        <nav class="mobile-bottom-bar">
+            <a href="index.html" class="bottom-bar-item" id="nav-chat">
+                <i class="fa-regular fa-message"></i>
+                <span>Chat</span>
+            </a>
+            <a href="emergency.html" class="bottom-bar-item emergency-mobile" id="nav-emergency">
+                <div class="emergency-icon-mobile">
+                    <i class="bi bi-plus-lg"></i>
+                </div>
+                <span>Emergency</span>
+            </a>
+            <a href="history.html" class="bottom-bar-item" id="nav-history">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>History</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="emergency.js"></script>
+</body>
+</html>
