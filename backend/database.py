@@ -13,8 +13,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False)  # Stored securely for the hackathon
+    name = Column(String, nullable=False)    
+    email = Column(String, unique=True, index=True, nullable=False) 
+    password = Column(String, nullable=False)
 
     # Establishes relationship so deleting a user can clear their history if needed
     chats = relationship("ChatMessage", back_populates="owner")
@@ -24,7 +25,7 @@ class ChatMessage(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Optional link for logged-in users
+    user_email = Column(String, ForeignKey("users.email"), nullable=True) 
     user_query = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
 

@@ -74,12 +74,12 @@
 
             <!-- Sign-in prompt + guest -->
             <div class="sidebar-footer">
-                <p class="sidebar-signin-prompt">
+                <p class="sidebar-signin-prompt" id="sidebar-signin-text">
                     <a href="login.html">Sign in</a> to save your conversations.
                 </p>
                 <div class="user-profile">
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                    <span>Guest</span>
+                    <span id="sidebar-username">Guest</span>
                 </div>
             </div>
         </aside>
@@ -98,24 +98,28 @@
             <div class="chat-area">
                 <h1 class="welcome-text">Hi there. What should we dive into today?</h1>
 
+                <div class="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; height: 50vh; margin-bottom: 1rem;">
+                </div>
+
                 <div class="input-container">
                     <div class="input-box">
-                        <input type="text" id="chat-input" placeholder="Message CalHelpr">
+                        <input type="text" id="chat-input" placeholder="Message CalHelpr" autocomplete="off">
                     </div>
+                </div>
 
-                    <div class="suggestions">
-                        <button class="suggestion-btn" id="sug-emergency">
-                            <i class="fa-solid fa-kit-medical"></i> Emergency Response Guide
-                        </button>
-                        <button class="suggestion-btn" id="sug-numbers">
-                            <i class="fa-solid fa-phone"></i> Important Numbers
-                        </button>
-                        <button class="suggestion-btn" id="sug-hospitals">
-                            <i class="fa-solid fa-location-dot"></i> Nearby Hospitals
-                        </button>
-                        <button class="suggestion-btn" id="sug-firstaid">
-                            <i class="fa-solid fa-heart-pulse"></i> First-Aid Training
-                    </div>
+                <div class="suggestions" style="margin-top: 0.5rem;">
+                    <button class="suggestion-btn" id="sug-emergency" type="button">
+                        <i class="fa-solid fa-kit-medical"></i> Emergency Response Guide
+                    </button>
+                    <button class="suggestion-btn" id="sug-numbers" type="button">
+                        <i class="fa-solid fa-phone"></i> Important Numbers
+                    </button>
+                    <button class="suggestion-btn" id="sug-hospitals" type="button">
+                        <i class="fa-solid fa-location-dot"></i> Nearby Hospitals
+                    </button>
+                    <button class="suggestion-btn" id="sug-firstaid" type="button">
+                        <i class="fa-solid fa-heart-pulse"></i> First-Aid Training
+                    </button>
                 </div>
 
                 <div class="disclaimer">
@@ -144,6 +148,7 @@
     </div>
 
     <script src="chat.js"></script>
+    <script src="history.js"></script>
 </body>
 
 </html>
