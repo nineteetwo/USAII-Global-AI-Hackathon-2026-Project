@@ -13,7 +13,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)       
+    name = Column(String, nullable=False)     
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
 
@@ -25,7 +25,8 @@ class ChatMessage(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_email = Column(String, ForeignKey("users.email"), nullable=True) 
+    thread_id = Column(String, index=True, nullable=True)
+    user_email = Column(String, ForeignKey("users.email"), nullable=True)
     user_query = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
 

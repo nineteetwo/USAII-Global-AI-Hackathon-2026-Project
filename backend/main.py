@@ -4,8 +4,10 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, status, Q
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from typing import Optional
+import time
 
 import database
 from database import get_db, User, ChatMessage
@@ -42,6 +44,7 @@ class UserLogin(BaseModel):
 class ChatInput(BaseModel):
     text: str
     email: Optional[str] = None 
+    thread_id: Optional[str] = None
     uploaded_file_path: Optional[str] = ""  # Lets JS attach the path returned by /api/upload
 
 # --- Endpoints ---
@@ -77,87 +80,97 @@ def process_chat_get(text: str = "Hello"):
     }
 
 @app.post("/api/chat")
-def process_chat(payload: ChatInput, db: Session = Depends(get_db)):
-    # Most recent message string
-    most_recent_message = payload.text
-    target_rag_document_path = payload.uploaded_file_path or ""
-    
-    # Automatic path lookup
-    if not target_rag_document_path and payload.email:
-        user_folder_name = payload.email.replace("@", "_").replace(".", "_")
-        user_upload_directory = os.path.join(UPLOAD_DIR, user_folder_name)
+def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
+    if not payload.text.strip():
+        raise HTTPException(status_code=400, detail="Query text cannot be empty")
         
-        if os.path.exists(user_upload_directory):
-            all_files = [
-                os.path.join(user_upload_directory, f) 
-                for f in os.listdir(user_upload_directory) 
-                if os.path.isfile(os.path.join(user_upload_directory, f))
-            ]
-            if all_files:
-                all_files.sort(key=os.path.getmtime)
-                target_rag_document_path = all_files[-1]
+    # Use the existing thread_id or assign a fresh one for a new conversation chain
+    assigned_thread_id = payload.thread_id if payload.thread_id else f"thread_{int(time.time())}"
 
-    # Compile the entire conversation history into one big text string
+    # Compile history using ONLY messages from this specific thread room
     conversation_history_string = ""
-    if payload.email: 
+    if payload.email:
         all_past_messages = (
             db.query(ChatMessage)
-            .filter(ChatMessage.user_email == payload.email) 
-            .order_by(ChatMessage.id.desc()) # Newest to oldest
+            .filter(ChatMessage.user_email == payload.email, ChatMessage.thread_id == assigned_thread_id)
+            .order_by(ChatMessage.id.asc())
             .all()
         )
-        
         for msg in all_past_messages:
-            conversation_history_string += f"User: {msg.user_query}\nBot: {msg.ai_response}\n"
+            conversation_history_string += f"User: {msg.user_query}\nAI: {msg.ai_response}\n"
 
-    # Run the updated parameters into your generation library script
-    ai_raw_output = generate_rag_response(
-        current_query=most_recent_message,
-        full_history=conversation_history_string,
-        user_doc_path=target_rag_document_path
+    compliance_wrapper = generate_rag_response(
+        current_query=payload.text, 
+        full_history=conversation_history_string, 
+        user_doc_path=payload.uploaded_file_path or ""
     )
-    
-    # Add safety guardrails
-    compliance_wrapper = (
-        f"{ai_raw_output}\n"
-        "ℹ️ *Guideline Notice: You may qualify for these community resources based on public files. "
-        "Please confirm direct options with your caseworker before processing.*"
-    )
-    
-    # Store this new turn into local history database
+
     db_chat = ChatMessage(
-        user_email=payload.email if payload.email else None,
-        user_query=most_recent_message, 
+        user_email=payload.email,
+        thread_id=assigned_thread_id,
+        user_query=payload.text,
         ai_response=compliance_wrapper
     )
     db.add(db_chat)
     db.commit()
-    
-    return {"response": compliance_wrapper, "id": db_chat.id}
+    db.refresh(db_chat)
+
+    return {"response": compliance_wrapper, "id": db_chat.id, "thread_id": assigned_thread_id}
 
 @app.get("/api/history")
-def get_history(email: str = None, db: Session = Depends(get_db)):
-    """Retrieves previous chat conversations from the database."""
-    if email: 
-        records = db.query(ChatMessage).filter(ChatMessage.user_email == email).all()
-    else:
-        records = db.query(ChatMessage).filter(ChatMessage.user_email == None).all()
+def get_user_history_logs(email: Optional[str] = None, db: Session = Depends(get_db)):
+    if not email:
+        return {"history": []}
         
-    return {"history": records}
+    all_messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.user_email == email)
+        .order_by(ChatMessage.id.asc())
+        .all()
+    )
+    
+    # Group messages by thread_id to build individual conversation links
+    grouped_threads = {}
+    for msg in all_messages:
+        tid = msg.thread_id if msg.thread_id else f"legacy_{msg.id}"
+        if tid not in grouped_threads:
+            grouped_threads[tid] = {
+                "id": msg.id,
+                "thread_id": tid,
+                "user_query": msg.user_query, # Uses first query as sidebar title
+                "ai_response": msg.ai_response
+            }
+            
+    return {"history": list(grouped_threads.values())}
 
 @app.get("/api/thread")
 def get_specific_thread(id: int, db: Session = Depends(get_db)):
-    """Fetches a single conversation record matching the given ID to render it back on screen."""
-    chat_record = db.query(ChatMessage).filter(ChatMessage.id == id).first()
-    if not chat_record:
-        raise HTTPException(status_code=404, detail="Chat conversation not found.")
+    # Find the target message first to find its thread group string
+    base_message = db.query(ChatMessage).filter(ChatMessage.id == id).first()
     
-    return {
-        "messages": [
-            {"text": chat_record.user_query, "sender": "user"},
-            {"text": chat_record.ai_response, "sender": "bot"}
-        ]
-    }
+    if not base_message:
+        return {"messages": [], "thread_id": None}
+        
+    # Handle matching criteria safely for rows that don't have a thread_id yet
+    if base_message.thread_id:
+        all_turns = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.thread_id == base_message.thread_id)
+            .order_by(ChatMessage.id.asc())
+            .all()
+        )
+        target_thread_id = base_message.thread_id
+    else:
+        # Fallback for old single-turn records left behind in the database
+        all_turns = [base_message]
+        target_thread_id = f"legacy_{base_message.id}"
+    
+    formatted_messages = []
+    for turn in all_turns:
+        formatted_messages.append({"text": turn.user_query, "sender": "user"})
+        formatted_messages.append({"text": turn.ai_response, "sender": "bot"})
+        
+    return {"messages": formatted_messages, "thread_id": target_thread_id}
 
 @app.post("/api/upload")
 async def upload_user_document(
