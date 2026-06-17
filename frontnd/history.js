@@ -1,50 +1,74 @@
 /* =============================================
-   History Page Scripts
+    History Page Scripts
 ============================================= */
 document.addEventListener('DOMContentLoaded', function () {
     var searchInput = document.getElementById('history-search-input');
-    var historyContainer = document.querySelector('.chat-list') || document.body;
+    
+    // Target both containers
+    var sidebarContainer = document.querySelector('.sidebar .chat-list');
+    var mainHistoryContainer = document.getElementById('history-list'); 
 
     // Pull data from database when page opens
     fetchConversationHistory();
 
     async function fetchConversationHistory() {
         try {
-            var activeUserId = localStorage.getItem('calhelpr_user_id');
+            var activeUserEmail = localStorage.getItem('calhelpr_email');
+            
             var url = 'http://127.0.0.1:8000/api/history';
-            if (activeUserId) {
-                url += '?user_id=' + activeUserId;
+            if (activeUserEmail) {
+                url += '?email=' + encodeURIComponent(activeUserEmail);
             }
 
             var response = await fetch(url);
             if (!response.ok) return;
 
             var data = await response.json();
-            var records = data.history; 
+            var records = data.history.reverse(); 
 
-            // Clear out hardcoded items in the list if the container is valid
-            if (document.querySelector('.chat-list')) {
-                document.querySelector('.chat-list').innerHTML = '';
-            }
+            // Clear out static mock placeholders from both sections
+            if (sidebarContainer) sidebarContainer.innerHTML = '';
+            if (mainHistoryContainer) mainHistoryContainer.innerHTML = '';
 
-            // Loop through database entries and inject them into the HTML layout
+            // Loop through entries and populate both sides
             records.forEach(function (record) {
-                var historyItem = document.createElement('a');
-                historyItem.href = '#';
-                historyItem.className = 'chat-item history-item';
+                
+                // Left sidebar panel
+                if (sidebarContainer) {
+                    var sidebarItem = document.createElement('a');
+                    sidebarItem.href = './index.html?thread=' + encodeURIComponent(record.id);
+                    sidebarItem.className = 'chat-item';
+                    
+                    var sidebarTitle = record.user_query.length > 25 ? record.user_query.substring(0, 25) + "..." : record.user_query;
+                    
+                    sidebarItem.innerHTML = `
+                        <i class="fa-regular fa-message"></i>
+                        <span>${sidebarTitle}</span>
+                    `;
+                    sidebarContainer.appendChild(sidebarItem);
+                }
 
-                // Use the first few words of what the user asked as the chat title
-                var shortTitle = record.user_query.length > 15 ? record.user_query.substring(0, 15) + "..." : record.user_query;
+                // Main right history panel (Mobile list view)
+                if (mainHistoryContainer) {
+                    var mainItem = document.createElement('a');
+                    mainItem.href = './index.html?thread=' + encodeURIComponent(record.id);
+                    mainItem.className = 'history-item'; 
 
-                historyItem.innerHTML = `
-                    <i class="fa-regular fa-message"></i>
-                    <div class="history-content">
-                        <span class="history-item-title" style="font-weight: 600; display:block;">${shortTitle}</span>
-                        <small class="history-item-preview" style="opacity: 0.6; font-size: 0.75rem;">${record.ai_response.substring(0, 45)}...</small>
-                    </div>
-                `;
+                    var mainTitle = record.user_query.length > 45 ? record.user_query.substring(0, 45) + "..." : record.user_query;
+                    var mainPreview = record.ai_response.length > 120 ? record.ai_response.substring(0, 120) + "..." : record.ai_response;
 
-                historyContainer.appendChild(historyItem);
+                    mainItem.innerHTML = `
+                        <div class="history-item-icon">
+                            <i class="fa-regular fa-message"></i>
+                        </div>
+                        <div class="history-item-body">
+                            <span class="history-item-title" style="font-weight: 600;">${mainTitle}</span>
+                            <span class="history-item-preview">${mainPreview}</span>
+                        </div>
+                        <span class="history-item-time">Recent</span>
+                    `;
+                    mainHistoryContainer.appendChild(mainItem);
+                }
             });
 
         } catch (error) {
@@ -52,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Search input filtering logic (applies directly to main list view entries)
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             var query = searchInput.value.toLowerCase().trim();
@@ -62,19 +87,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 var title = item.querySelector('.history-item-title');
                 var preview = item.querySelector('.history-item-preview');
                 var text = (title ? title.textContent : '') + ' ' + (preview ? preview.textContent : '');
+                
                 if (text.toLowerCase().indexOf(query) !== -1) {
-                    item.classList.remove('hidden');
+                    item.style.display = ""; 
                 } else {
-                    item.classList.add('hidden');
+                    item.style.display = "none";
                 }
             });
 
             groups.forEach(function (group) {
-                var visible = group.querySelectorAll('.history-item:not(.hidden)');
+                var visible = group.querySelectorAll('.history-item:not([style*="display: none"])');
                 if (visible.length === 0) {
-                    group.classList.add('hidden');
+                    group.style.display = "none";
                 } else {
-                    group.classList.remove('hidden');
+                    group.style.display = "";
                 }
             });
         });

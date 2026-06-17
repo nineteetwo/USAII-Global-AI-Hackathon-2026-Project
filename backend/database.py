@@ -13,8 +13,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)    
-    email = Column(String, unique=True, index=True, nullable=False) 
+    name = Column(String, nullable=False)       
+    email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
 
     # Establishes relationship so deleting a user can clear their history if needed
@@ -29,7 +29,7 @@ class ChatMessage(Base):
     user_query = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
 
-    owner = relationship("User", back_populates="chats")
+    owner = relationship("User", back_populates="chats", primaryjoin="ChatMessage.user_email == User.email")
 
 # Initialize tables
 def init_db():

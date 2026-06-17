@@ -3,20 +3,14 @@
 ============================================= */
 document.addEventListener('DOMContentLoaded', function () {
     // Display User Session Info into Sidebar UI 
-    var savedUsername = localStorage.getItem('calhelpr_username');
-    var sidebarUsernameSpan = document.getElementById('sidebar-username');
+    var savedName = localStorage.getItem('calhelpr_name');
+    var sidebarNameSpan = document.getElementById('sidebar-name');
     var sidebarSigninText = document.getElementById('sidebar-signin-text');
     var topBarSignInLink = document.getElementById('sign-in-link');
 
-    if (savedUsername) {
-        if (sidebarUsernameSpan) {
-            sidebarUsernameSpan.innerText = savedUsername;
-        }
-        // Hide "Sign in to save conversations" prompt text
-        if (sidebarSigninText) {
-            sidebarSigninText.style.display = 'none';
-        }
-        // Swap the header "Sign In" button to say "Sign Out"
+    if (savedName) {
+        if (sidebarNameSpan) sidebarNameSpan.innerText = savedName;
+        if (sidebarSigninText) sidebarSigninText.style.display = 'none';
         if (topBarSignInLink) {
             topBarSignInLink.innerText = "Sign Out";
             topBarSignInLink.href = "#";
@@ -29,6 +23,82 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var chatInput = document.getElementById('chat-input');
     var chatMessagesContainer = document.querySelector('.chat-messages'); 
+    var sidebarContainer = document.querySelector('.sidebar .chat-list');
+
+    // Extract a specific conversation thread identifier from the browser's address bar
+    var urlParams = new URLSearchParams(window.location.search);
+    var activeThreadId = urlParams.get('thread');
+
+    // Fetch and display sidebar history safely when the chat page loads
+    if (sidebarContainer) {
+        fetchSidebarHistory();
+    }
+
+    // If the user clicked a specific past conversation link, pull and load its content arrays
+    if (activeThreadId && chatMessagesContainer) {
+        loadSpecificThread(activeThreadId);
+    }
+
+    async function fetchSidebarHistory() {
+        try {
+            var activeUserEmail = localStorage.getItem('calhelpr_email');
+            var url = 'http://127.0.0.1:8000/api/history';
+            
+            if (activeUserEmail) {
+                url += '?email=' + encodeURIComponent(activeUserEmail);
+            }
+
+            var response = await fetch(url);
+            if (!response.ok) return;
+
+            var data = await response.json();
+            var records = data.history.reverse(); 
+
+            if (sidebarContainer) {
+                sidebarContainer.innerHTML = ''; 
+
+                records.forEach(function (record) {
+                    var sidebarItem = document.createElement('a');
+                    
+                    sidebarItem.href = 'index.html?thread=' + encodeURIComponent(record.id);
+                    sidebarItem.className = 'chat-item';
+                    
+                    if (activeThreadId && String(record.id) === String(activeThreadId)) {
+                        sidebarItem.classList.add('active');
+                    }
+                    
+                    var sidebarTitle = record.user_query.length > 25 ? record.user_query.substring(0, 25) + "..." : record.user_query;
+                    
+                    sidebarItem.innerHTML = `
+                        <i class="fa-regular fa-message"></i>
+                        <span>${sidebarTitle}</span>
+                    `;
+                    sidebarContainer.appendChild(sidebarItem);
+                });
+            }
+        } catch (error) {
+            console.error("Failed to load sidebar logs:", error);
+        }
+    }
+
+    async function loadSpecificThread(threadId) {
+        try {
+            var response = await fetch('http://127.0.0.1:8000/api/thread?id=' + encodeURIComponent(threadId));
+            if (!response.ok) return;
+
+            var data = await response.json();
+            
+            if (chatMessagesContainer && data.messages) {
+                chatMessagesContainer.innerHTML = '';
+                
+                data.messages.forEach(function (msg) {
+                    appendMessageBubble(msg.text, msg.sender);
+                });
+            }
+        } catch (error) {
+            console.error("Failed to recover specified conversation thread data:", error);
+        }
+    }
 
     if (chatInput && chatMessagesContainer) {
         chatInput.addEventListener('keydown', async function (e) {
@@ -36,38 +106,41 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Store input text
                 var userText = chatInput.value.trim();
                 if (userText === '') 
-                    return;
+                    return false;
 
-                console.log("user entered" + userText);
                 chatInput.value = '';
 
-                // Display temporary "Thinking..." placeholder bubble on screen
                 appendMessageBubble(userText, 'user');
                 var loadingBubble = appendMessageBubble('Thinking...', 'bot');
                 var textContainer = loadingBubble.querySelector('.message-text');
 
                 try {
-                    // Grab user_id from localStorage if logged in
-                    var activeUserId = localStorage.getItem('calhelpr_user_id');
+                    var activeUserEmail = localStorage.getItem('calhelpr_email');
 
-                    // Send message to backend
                     var response = await fetch('http://127.0.0.1:8000/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             text: userText,
-                            user_id: activeUserId ? parseInt(activeUserId) : null
+                            email: activeUserEmail ? activeUserEmail : null
                         }),
                     });
 
                     var data = await response.json();
 
-                    // Replace placeholder bubble with RAG response
                     if (response.ok) {
                         textContainer.innerText = data.response;
+                        
+                        // If new chat, lock address parameters onto its newly saved record row
+                        if (!activeThreadId && data.id) {
+                            var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?thread=' + encodeURIComponent(data.id);
+                            window.history.pushState({ path: newUrl }, '', newUrl);
+                            activeThreadId = data.id;
+                        }
+                        
+                        fetchSidebarHistory();
                     } else {
                         textContainer.innerText = "Error: " + (data.detail || "Something went wrong.");
                     }
@@ -81,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Dynamic element injector matching the project's CSS wrappers
     function appendMessageBubble(text, sender) {
         var msgDiv = document.createElement('div');
         msgDiv.className = 'message ' + sender; 

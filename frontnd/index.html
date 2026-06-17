@@ -53,7 +53,7 @@
             <div class="sidebar-content">
                 <p class="sidebar-section-label">Recent</p>
                 <div class="chat-list">
-                    <a href="#" class="chat-item">
+                    <!-- <a href="#" class="chat-item">
                         <i class="fa-regular fa-message"></i>
                         <span>Heart Attack Symptoms</span>
                     </a>
@@ -68,7 +68,7 @@
                     <a href="#" class="chat-item">
                         <i class="fa-regular fa-message"></i>
                         <span>Basic First-Aid Steps</span>
-                    </a>
+                    </a> -->
                 </div>
             </div>
 
@@ -79,7 +79,7 @@
                 </p>
                 <div class="user-profile">
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                    <span id="sidebar-username">Guest</span>
+                    <span id="sidebar-name">Guest</span>
                 </div>
             </div>
         </aside>
@@ -98,7 +98,7 @@
             <div class="chat-area">
                 <h1 class="welcome-text">Hi there. What should we dive into today?</h1>
 
-                <div class="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; height: 50vh; margin-bottom: 1rem;">
+                <div class="chat-messages">
                 </div>
 
                 <div class="input-container">
@@ -108,18 +108,26 @@
                 </div>
 
                 <div class="suggestions" style="margin-top: 0.5rem;">
-                    <button class="suggestion-btn" id="sug-emergency" type="button">
-                        <i class="fa-solid fa-kit-medical"></i> Emergency Response Guide
-                    </button>
-                    <button class="suggestion-btn" id="sug-numbers" type="button">
-                        <i class="fa-solid fa-phone"></i> Important Numbers
-                    </button>
-                    <button class="suggestion-btn" id="sug-hospitals" type="button">
-                        <i class="fa-solid fa-location-dot"></i> Nearby Hospitals
-                    </button>
-                    <button class="suggestion-btn" id="sug-firstaid" type="button">
-                        <i class="fa-solid fa-heart-pulse"></i> First-Aid Training
-                    </button>
+                    <a target="_blank" href="https://www.phmsa.dot.gov/sites/phmsa.dot.gov/files/2024-04/ERG2024-Eng-Web-a.pdf">
+                        <button class="suggestion-btn" id="sug-emergency" type="button">
+                            <i class="fa-solid fa-kit-medical"></i> Emergency Response Guide
+                        </button>
+                    </a>
+                    <a href="emergency.html">
+                        <button class="suggestion-btn" id="sug-numbers" type="button">
+                            <i class="fa-solid fa-phone"></i> Important Numbers
+                        </button>
+                    </a>
+                    <a target="_blank" href="https://local.hospitalfindr.com/find-care/hospital/ca/">
+                        <button class="suggestion-btn" id="sug-hospitals" type="button">
+                            <i class="fa-solid fa-location-dot"></i> Nearby Hospitals
+                        </button>
+                    </a>
+                    <a target="_blank" href="https://www.redcross.org/take-a-class?scode=PSG00000E017&&cid=generator&med=cpc&source=google&utm_source=bing&utm_medium=cpc&utm_campaign=%5BM%5D%20%7C%20FACPR%20%7C%20NonBrand%7CSearch&utm_term=aha%20cpr%20card&utm_content=Competitor">
+                        <button class="suggestion-btn" id="sug-firstaid" type="button">
+                            <i class="fa-solid fa-heart-pulse"></i> First-Aid Training
+                        </button>
+                    </a>
                 </div>
 
                 <div class="disclaimer">
@@ -148,7 +156,6 @@
     </div>
 
     <script src="chat.js"></script>
-    <script src="history.js"></script>
 </body>
 
 </html>

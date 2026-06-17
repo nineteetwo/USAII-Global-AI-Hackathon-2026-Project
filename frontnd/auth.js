@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (response.ok) {
                     // Storing Name for the UI layout and Email for the database tracker
-                    localStorage.setItem('calhelpr_username', data.name); 
+                    localStorage.setItem('calhelpr_name', data.name); 
                     localStorage.setItem('calhelpr_email', data.email); 
 
                     // Send them straight back to the main chat console view
@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
 
     /* ========== Signup form submit ========== */
     var signupForm = document.getElementById('signup-form');

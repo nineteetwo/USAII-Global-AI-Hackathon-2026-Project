@@ -17,7 +17,6 @@
 
 <body>
     <div class="app-container">
-        <!-- Sidebar (Desktop) -->
         <aside class="sidebar">
             <a href="index.html" class="sidebar-brand">
                 <span class="brand-text">CalHelpr</span>
@@ -48,38 +47,20 @@
 
             <div class="sidebar-content">
                 <p class="sidebar-section-label">Recent</p>
-                <div class="chat-list">
-                    <a href="#" class="chat-item">
-                        <i class="fa-regular fa-message"></i>
-                        <span>Heart Attack Symptoms</span>
-                    </a>
-                    <a href="#" class="chat-item">
-                        <i class="fa-regular fa-message"></i>
-                        <span>What to Do During an Earthquake</span>
-                    </a>
-                    <a href="#" class="chat-item">
-                        <i class="fa-regular fa-message"></i>
-                        <span>Emergency Kit Preparation</span>
-                    </a>
-                    <a href="#" class="chat-item">
-                        <i class="fa-regular fa-message"></i>
-                        <span>Basic First-Aid Steps</span>
-                    </a>
-                </div>
+                <div class="chat-list"></div>
             </div>
 
             <div class="sidebar-footer">
-                <p class="sidebar-signin-prompt">
+                <p class="sidebar-signin-prompt" id="sidebar-signin-text">
                     <a href="login.html">Sign in</a> to save your conversations.
                 </p>
                 <div class="user-profile">
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                    <span>Guest</span>
+                    <span id="sidebar-name">Guest</span>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content — History Page -->
         <main class="main-content">
             <header class="top-bar">
                 <a href="index.html" class="mobile-logo">
@@ -91,7 +72,6 @@
             </header>
 
             <div class="history-page">
-                <!-- Search -->
                 <div class="history-search-wrap">
                     <div class="history-search-box">
                         <i class="fa-solid fa-magnifying-glass history-search-icon"></i>
@@ -100,93 +80,10 @@
                     </div>
                 </div>
 
-                <!-- Chat list grouped by date -->
-                <div class="history-list" id="history-list">
-                    <!-- Today -->
-                    <div class="history-date-group">
-                        <h2 class="history-date-label">Today</h2>
-                        <a href="index.html" class="history-item" id="hist-1">
-                            <div class="history-item-icon">
-                                <i class="fa-regular fa-message"></i>
-                            </div>
-                            <div class="history-item-body">
-                                <span class="history-item-title">Heart Attack Symptoms</span>
-                                <span class="history-item-preview">What are the early warning signs of a heart attack
-                                    and how to respond?</span>
-                            </div>
-                            <span class="history-item-time">2:45 PM</span>
-                        </a>
-                        <a href="index.html" class="history-item" id="hist-2">
-                            <div class="history-item-icon">
-                                <i class="fa-regular fa-message"></i>
-                            </div>
-                            <div class="history-item-body">
-                                <span class="history-item-title">Basic First-Aid Steps</span>
-                                <span class="history-item-preview">A quick overview of first-aid procedures for burns
-                                    and fractures.</span>
-                            </div>
-                            <span class="history-item-time">11:20 AM</span>
-                        </a>
-                    </div>
-
-                    <!-- Yesterday -->
-                    <div class="history-date-group">
-                        <h2 class="history-date-label">Yesterday</h2>
-                        <a href="index.html" class="history-item" id="hist-3">
-                            <div class="history-item-icon">
-                                <i class="fa-regular fa-message"></i>
-                            </div>
-                            <div class="history-item-body">
-                                <span class="history-item-title">What to Do During an Earthquake</span>
-                                <span class="history-item-preview">Step-by-step safety actions before, during, and after
-                                    an earthquake.</span>
-                            </div>
-                            <span class="history-item-time">7:10 PM</span>
-                        </a>
-                        <a href="index.html" class="history-item" id="hist-4">
-                            <div class="history-item-icon">
-                                <i class="fa-regular fa-message"></i>
-                            </div>
-                            <div class="history-item-body">
-                                <span class="history-item-title">Emergency Kit Preparation</span>
-                                <span class="history-item-preview">Essential items to include in your household
-                                    emergency preparedness kit.</span>
-                            </div>
-                            <span class="history-item-time">3:35 PM</span>
-                        </a>
-                    </div>
-
-                    <!-- Last Week -->
-                    <div class="history-date-group">
-                        <h2 class="history-date-label">Last Week</h2>
-                        <a href="index.html" class="history-item" id="hist-5">
-                            <div class="history-item-icon">
-                                <i class="fa-regular fa-message"></i>
-                            </div>
-                            <div class="history-item-body">
-                                <span class="history-item-title">CPR Technique Walkthrough</span>
-                                <span class="history-item-preview">Hands-only CPR steps for adults and children in
-                                    emergencies.</span>
-                            </div>
-                            <span class="history-item-time">Jun 9</span>
-                        </a>
-                        <a href="index.html" class="history-item" id="hist-6">
-                            <div class="history-item-icon">
-                                <i class="fa-regular fa-message"></i>
-                            </div>
-                            <div class="history-item-body">
-                                <span class="history-item-title">Tornado Safety Tips</span>
-                                <span class="history-item-preview">Best practices for staying safe during a tornado
-                                    warning.</span>
-                            </div>
-                            <span class="history-item-time">Jun 8</span>
-                        </a>
-                    </div>
-                </div>
+                <div class="history-list" id="history-list"></div>
             </div>
         </main>
 
-        <!-- Mobile Bottom Bar -->
         <nav class="mobile-bottom-bar">
             <a href="index.html" class="bottom-bar-item" id="nav-chat-history">
                 <i class="fa-regular fa-message"></i>

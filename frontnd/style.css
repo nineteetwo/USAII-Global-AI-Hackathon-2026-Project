@@ -58,7 +58,7 @@ button,input{font-family:inherit}
 .app-container{display:flex;width:100%;height:100%;position:relative}
 
 /* ============================================
-   SIDEBAR — Copilot style
+   SIDEBAR
 ============================================ */
 .sidebar{width:260px;background:var(--sidebar-bg);border-right:1px solid var(--border-color);display:flex;flex-direction:column;flex-shrink:0}
 
@@ -124,6 +124,13 @@ button,input{font-family:inherit}
 .suggestion-btn i{color:var(--accent)}
 
 .disclaimer{font-size:12px;color:var(--text-muted);margin-top:40px;text-align:center;width:100%;padding:0 20px}
+.chat-messages{flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; height: 50vh; margin-bottom: 1rem;}
+.chat-item.active {
+   background-color: var(--hover-bg);   
+   color: var(--text-primary);
+   font-weight: 500;
+   border-left: 3px solid var(--accent);
+}
 
 /* ============================================
    MOBILE BOTTOM BAR
