@@ -12,6 +12,8 @@ import time
 import database
 from database import get_db, User, ChatMessage
 from rag import generate_rag_response
+from parse_process.doc_parser import parse_document, clean_text, unicode_safe
+from parse_process.process_parse import extract 
 
 app = FastAPI(title="CalHelpr Backend Engine")
 
@@ -225,3 +227,78 @@ def list_user_documents(email: str = Query(...)):
         return {"documents": all_files}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to query files repository: {str(e)}")
+
+@app.post("/api/documents/process")
+async def process_user_document(
+    email: str = Query(..., description="The user's email address"),
+    filename: str = Query(..., description="The exact filename of the uploaded document"),
+    system_prompt: Optional[str] = Query(None, description="Custom processing instructions for the AI")
+):
+    import os
+    from parse_process.process_parse import extract, build_backend
+    from parse_process.doc_parser import parse_document, clean_text
+
+    # Reconstruct the user's specific uploads folder path
+    safe_email_dir = email.replace("@", "_").replace(".", "_")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_dir, "uploads", safe_email_dir, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"The file '{filename}' could not be located."
+        )
+
+    try:
+        # Extract the raw text from the file using your universal doc_parser
+        print(f"Parsing raw text from file: {filename}...")
+        raw_text = parse_document(file_path, quiet=True)
+        cleaned_doc_text = clean_text(raw_text)
+
+        if not cleaned_doc_text.strip():
+            return {
+                "filename": filename,
+                "status": "Skipped",
+                "slm_analysis": "The target document appeared to be empty or unreadable."
+            }
+
+        # Handle default fallback for system instructions
+        default_prompt = "Extract all core data and summarize the document contents."
+        active_prompt = system_prompt if system_prompt else default_prompt
+
+        # Initialize the local backend builder
+        local_backend = build_backend(
+            backend_name=None,   
+            host=None,           
+            model="qwen2.5:1.5b", # default Ollama model
+            temperature=0.1,     
+            max_tokens=2048,     
+            timeout=120,         
+            quiet=False          
+        )
+
+        print(f"Running local extraction pipeline for {filename}...")
+        
+        # Execute processing via local LLM engine
+        ai_analysis = extract(
+            text=cleaned_doc_text,
+            system_prompt=active_prompt,
+            backend=local_backend,
+            fmt="text",
+            chunk_size=4000,
+            overlap=300,
+            quiet=False
+        )
+
+        return {
+            "filename": filename,
+            "status": "Success",
+            "slm_analysis": ai_analysis
+        }
+
+    except Exception as e:
+        print(f"Pipeline execution crash error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during processing: {str(e)}"
+        )

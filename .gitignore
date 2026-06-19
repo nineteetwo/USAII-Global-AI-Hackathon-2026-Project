@@ -1,4 +1,6 @@
-.vscode
 **/__pycache__
 **/output
-calhelper.dbs
+**/uploads
+calhelper.db
+.env
+.vscode

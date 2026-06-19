@@ -107,15 +107,17 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!response.ok) return;
 
             var data = await response.json();
+            
+            // If the backend returns an empty room gracefully with no thread_id, clear the stale URL param
             if (data.thread_id === null && (!data.messages || data.messages.length === 0)) {
                 clearStaleThreadState(rowId);
                 return;
             }
 
-            runtimeThreadSessionString = data.thread_id;
+            runtimeThreadSessionString = data.thread_id; // Sync tracking string
 
             if (chatMessagesContainer && data.messages) {
-                chatMessagesContainer.innerHTML = ''; 
+                chatMessagesContainer.innerHTML = ''; // Clear greeting
                 data.messages.forEach(function (msg) {
                     appendMessageBubble(msg.text, msg.sender);
                 });
@@ -179,6 +181,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (!currentActiveRowId && data.id) {
                             var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?thread=' + encodeURIComponent(data.id);
                             window.history.pushState({ path: newUrl }, '', newUrl);
+                            
+                            // Force-load the new database logs so it loads right away
+                            loadSpecificThread(data.id);
                         }
                         
                         // Re-render sidebar navigation items gently
@@ -219,5 +224,6 @@ document.addEventListener('DOMContentLoaded', function () {
         chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 
         return msgDiv;
-    }  
+    }
+    
 });
