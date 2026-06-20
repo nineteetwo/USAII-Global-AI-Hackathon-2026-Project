@@ -802,7 +802,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--model", default="", metavar="NAME", help="Model name/tag.")
     ap.add_argument("--temperature", type=float, default=0.1, metavar="F")
     ap.add_argument("--max-tokens", type=int, default=2048, metavar="N")
-    ap.add_argument("--timeout", type=int, default=120, metavar="S")
+    ap.add_argument("--timeout", type=int, default=1000, metavar="S")
     ap.add_argument("--max-db-programs", type=int, default=8, metavar="N")
     ap.add_argument("--max-web-programs", type=int, default=4, metavar="N")
     ap.add_argument("--no-web-fallback", action="store_true",
