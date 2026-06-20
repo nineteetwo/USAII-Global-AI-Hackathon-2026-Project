@@ -84,7 +84,7 @@ def log(msg: str, quiet: bool = False):
 
 
 # HTTP helpers  (stdlib only — no requests needed)
-def _http_post(url: str, payload: dict, timeout: int = 120) -> dict:
+def _http_post(url: str, payload: dict, timeout: int = 1000) -> dict:
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url,
