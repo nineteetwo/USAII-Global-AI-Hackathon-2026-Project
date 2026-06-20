@@ -95,6 +95,12 @@ def _http_post(url: str, payload: dict, timeout: int = 120) -> dict:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
+    except TimeoutError as exc:
+        raise RuntimeError(
+            f"Request to {url} timed out after {timeout} seconds. "
+            "Try increasing --timeout, reducing prompt size, using --max-tokens 1024, "
+            "or using a smaller/faster model."
+        ) from exc
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"HTTP {exc.code} from {url}:\n{detail}") from exc
@@ -334,7 +340,10 @@ def _try_parse_json(text: str):
     clean = re.sub(r"\n?```$", "", clean.strip())
     try:
         return json.loads(clean)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        clean += "\n}"
+        try: return json.loads(clean)
+        except: pass
         return None
 
 
