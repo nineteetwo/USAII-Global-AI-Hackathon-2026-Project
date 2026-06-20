@@ -652,7 +652,7 @@ def find_assistance(
     model: str = "",
     temperature: float = 0.1,
     max_tokens: int = 4096,
-    timeout: int = 120,
+    timeout: int = 1000,
 ) -> dict:
     """
     Main entry point. See module docstring for argument details.
