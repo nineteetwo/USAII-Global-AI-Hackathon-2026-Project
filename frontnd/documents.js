@@ -1,6 +1,4 @@
 const BACKEND_URL = "http://127.0.0.1:8000";
-
-// Dynamically check localStorage for the logged-in user's email
 const currentUserEmail = localStorage.getItem("calhelpr_email") || "guest";
 
 document.addEventListener("DOMContentLoaded", fetchUploadedDocuments);
@@ -29,7 +27,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
         if (response.ok) {
             const uploadData = await response.json();
-            // Store the file path so the chat page can attach it to requests
+
             if (uploadData.saved_path) {
                 localStorage.setItem('calhelpr_last_upload_path', uploadData.saved_path);
                 localStorage.setItem('calhelpr_last_upload_name', uploadData.filename);
@@ -64,7 +62,7 @@ async function fetchUploadedDocuments() {
         }
 
         const data = await response.json();
-        const files = data.documents; // Matches your backend json signature: {"documents": [...]}
+        const files = data.documents;
 
         if (!files || files.length === 0) {
             container.innerHTML = `<p class="empty-text">No workspace documents found. Upload a file above to add references for your RAG chatbot assistant.</p>`;
@@ -105,7 +103,7 @@ async function deleteDocument(filename) {
         });
 
         if (response.ok) {
-            fetchUploadedDocuments(); // Automatically refresh the UI repository container look
+            fetchUploadedDocuments(); 
         } else {
             alert("Failed to delete the document.");
         }

@@ -34,6 +34,26 @@ document.addEventListener('DOMContentLoaded', function () {
     // State variable to store our unique session thread identifier string
     var runtimeThreadSessionString = null;
 
+    // If returning from a rejection event on the tracker page, restore context and greet the user
+    var pendingRejection = localStorage.getItem("showRejectionGreeting");
+    if (pendingRejection) {
+        localStorage.removeItem("showRejectionGreeting");
+        var rejectedProgram = localStorage.getItem("pendingRejectedProgram") || "a program";
+        localStorage.removeItem("pendingRejectedProgram");
+
+        var savedThread = localStorage.getItem("activeThreadId");
+        if (savedThread) {
+            runtimeThreadSessionString = savedThread;
+        }
+
+        if (chatMessagesContainer) {
+            appendMessageBubble(
+                `I see your application to ${rejectedProgram} was rejected. Would you like me to search for alternative community programs you may qualify for? Just say "yes" to proceed.`,
+                'bot'
+            );
+        }
+    }
+
     // Helper to get thread database row fallback ID from the live URL state
     function getActiveThreadRowId() {
         var urlParams = new URLSearchParams(window.location.search);
@@ -173,11 +193,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     var data = await response.json();
 
                     if (response.ok) {
-                        // Swap out 'Thinking...' text container natively without refreshes
+                        // Swap out 'Thinking...' text container without refreshes
                         textContainer.innerText = data.response;
                         
                         // Set unique room identifier context
                         runtimeThreadSessionString = data.thread_id;
+                        localStorage.setItem("activeThreadId", runtimeThreadSessionString);
                         
                         var currentActiveRowId = getActiveThreadRowId();
                         // Lock current view window onto this thread's URL parameters context route
@@ -189,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             loadSpecificThread(data.id);
                         }
                         
-                        // Re-render sidebar navigation items gently
                         fetchSidebarHistory();
                     } else {
                         textContainer.innerText = "Error: " + (data.detail || "Something went wrong.");

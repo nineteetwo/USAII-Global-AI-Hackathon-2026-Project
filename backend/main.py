@@ -1,21 +1,23 @@
+from fastapi.responses import JSONResponse
+import database
 import os
 import shutil
+import time
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from typing import Optional
-import time
-
-import database
+from pydantic import BaseModel
 from database import get_db, User, ChatMessage
 from rag import generate_rag_response
-from parse_process.doc_parser import parse_document, clean_text, unicode_safe
-from parse_process.process_parse import extract 
+from parse_process.doc_parser import parse_document, clean_text
+from parse_process.process_parse import extract, build_backend
+from parse_process.guidance_generator import generate_guidance, format_guidance_markdown
+from parse_process.process_parse import build_backend
 
-app = FastAPI(title="CalHelpr Backend Engine")
+app = FastAPI(title="CalHelpr Backend")
 
 Base = declarative_base()
 database.init_db()
@@ -48,7 +50,13 @@ class ChatInput(BaseModel):
     text: str
     email: Optional[str] = None 
     thread_id: Optional[str] = None
-    uploaded_file_path: Optional[str] = ""  # Lets JS attach the path returned by /api/upload
+    uploaded_file_path: Optional[str] = "" 
+
+class TrackerStatusUpdate(BaseModel):
+    email: str
+    thread_id: str
+    program_name: str
+    status: str  # "applied", "accepted", "rejected"
 
 # --- Endpoints ---
 @app.post("/api/signup", status_code=status.HTTP_201_CREATED)
@@ -75,43 +83,96 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
 
 @app.post("/api/chat")
 def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
-    """Handles chatbot conversations and invokes the assistance finder RAG workflow."""
-    if not payload.text.strip():
-        raise HTTPException(status_code=400, detail="Query text cannot be empty")
-        
-    assigned_thread_id = payload.thread_id if payload.thread_id else f"thread_{int(time.time())}"
+    try:
+        # Use existing thread or fallback safely
+        assigned_thread_id = payload.thread_id if payload.thread_id else f"thread_{int(time.time())}"
 
-    # Compile chat history for context continuity
-    conversation_history_string = ""
-    if payload.email:
-        all_past_messages = (
+        # Gather all past logs in this thread to analyze state context
+        history_records = (
             db.query(ChatMessage)
-            .filter(ChatMessage.user_email == payload.email, ChatMessage.thread_id == assigned_thread_id)
+            .filter(ChatMessage.thread_id == assigned_thread_id)
             .order_by(ChatMessage.id.asc())
             .all()
         )
-        for msg in all_past_messages:
-            conversation_history_string += f"User: {msg.user_query}\nAI: {msg.ai_response}\n"
 
-    # Trigger assistance_finder pipeline
-    compliance_wrapper = generate_rag_response(
-        current_query=payload.text, 
-        full_history=conversation_history_string, 
-        user_doc_path=payload.uploaded_file_path or ""
-    )
+        has_unhandled_rejection = False
+        rejected_program_name = ""
+        conversations_list = []
 
-    # Save conversation interaction to database logs
-    db_chat = ChatMessage(
-        user_email=payload.email,
-        thread_id=assigned_thread_id,
-        user_query=payload.text,
-        ai_response=compliance_wrapper
-    )
-    db.add(db_chat)
-    db.commit()
-    db.refresh(db_chat)
+        for msg in history_records:
+            # Look for the tracker seed token we dropped in Step 2
+            if "[System Event: Application Rejected from" in msg.user_query:
+                has_unhandled_rejection = True
+                try:
+                    rejected_program_name = msg.user_query.split("from ")[1].replace("]", "")
+                except Exception:
+                    rejected_program_name = "the evaluated program"
+            
+            conversations_list.append(f"User: {msg.user_query}\nAI: {msg.ai_response}")
 
-    return {"response": compliance_wrapper, "id": db_chat.id, "thread_id": assigned_thread_id}
+        # ROUTE A: Post-Rejection Community Guidance Web Scraping
+        if has_unhandled_rejection:
+            print(f"[Engine] Found rejection marker for {rejected_program_name}. Launching fallback resource finder...")
+            
+            local_slm = build_backend(
+                backend_name="ollama", host=None, model="llama3.2:3b", 
+                temperature=0.3, max_tokens=1024, timeout=300, quiet=True
+            )
+            
+            # Combine chat records into text representations
+            conversation_history_string = "\n".join(conversations_list)
+
+            # Fire your guidance module's web search scraping pipeline
+            guidance_data = generate_guidance(
+                program_applied_to=rejected_program_name,
+                application_result="rejected",
+                previous_chat_profile=conversation_history_string or "Applicant looking for mutual aid resources.",
+                conversations=conversations_list,
+                location="CA",
+                backend=local_slm,
+                enable_web_search=True, # ◄ Kicks off the local scraping system context
+                max_resources=4
+            )
+            
+            guidance_markdown = format_guidance_markdown(guidance_data)
+            
+            # Save this execution step to the permanent chat logs
+            new_chat_log = ChatMessage(
+                user_email=payload.email,
+                thread_id=assigned_thread_id,
+                user_query=payload.text,
+                ai_response=guidance_markdown
+            )
+            db.add(new_chat_log)
+            db.commit()
+
+            return {"response": guidance_markdown}
+
+        # ROUTE B: Standard Document Verification / Eligibility Check (Default)
+        print("[Engine] Routing interaction to standard RAG pipeline...")
+        eligibility_report = generate_rag_response(
+            current_query=payload.text,
+            full_history="\n".join(conversations_list),
+            user_doc_path=payload.uploaded_file_path or ""
+        )
+
+        new_chat_log = ChatMessage(
+            user_email=payload.email,
+            thread_id=assigned_thread_id,
+            user_query=payload.text,
+            ai_response=eligibility_report
+        )
+        db.add(new_chat_log)
+        db.commit()
+
+        return {"response": eligibility_report}
+
+    except Exception as e:
+        print(f"[CRITICAL ERROR] Chat endpoint crashed: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal Server error: {str(e)}"}
+        )
 
 @app.get("/api/history")
 def get_user_history_logs(email: Optional[str] = None, db: Session = Depends(get_db)):
@@ -228,10 +289,6 @@ async def process_user_document(
     filename: str = Query(..., description="The exact filename of the uploaded document"),
     system_prompt: Optional[str] = Query(None, description="Custom processing instructions for the AI")
 ):
-    import os
-    from parse_process.process_parse import extract, build_backend
-    from parse_process.doc_parser import parse_document, clean_text
-
     # Reconstruct the user's specific uploads folder path
     safe_email_dir = email.replace("@", "_").replace(".", "_")
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -307,3 +364,18 @@ def delete_user_document(email: str = Query(...), filename: str = Query(...)):
         return {"message": f"Successfully deleted {filename}"}
     else:
         raise HTTPException(status_code=404, detail="File not found on system disk.")
+
+@app.post("/api/tracker/update")
+def update_application_status(payload: TrackerStatusUpdate, db: Session = Depends(get_db)):
+    """
+    Handles application tracker updates. If 'rejected' is passed, it triggers
+    the local SLM and scraping engine to find alternative community programs.
+    """
+    if payload.status.lower() == "rejected":
+        return {
+            "status": "Success",
+            "message": "Status updated to Rejected.",
+            "trigger_followup": True
+        }
+        
+    return {"status": "Success", "message": f"Status updated to {payload.status}"}
