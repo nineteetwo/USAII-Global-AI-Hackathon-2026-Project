@@ -137,7 +137,15 @@ document.addEventListener('DOMContentLoaded', function () {
             runtimeThreadSessionString = data.thread_id; // Sync tracking string
 
             if (chatMessagesContainer && data.messages) {
-                chatMessagesContainer.innerHTML = ''; // Clear greeting
+                chatMessagesContainer.innerHTML = '';
+                
+                var welcomeText = document.querySelector('.welcome-text');
+                var suggestions = document.querySelector('.suggestions');
+                var disclaimer = document.querySelector('.disclaimer');
+                if (welcomeText) welcomeText.style.display = 'none';
+                if (suggestions) suggestions.style.display = 'none';
+                if (disclaimer) disclaimer.style.display = 'none';
+
                 data.messages.forEach(function (msg) {
                     appendMessageBubble(msg.text, msg.sender);
                 });
@@ -169,6 +177,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Append user bubble instantly
                 appendMessageBubble(userText, 'user');
+                
+                var welcomeText = document.querySelector('.welcome-text');
+                var suggestions = document.querySelector('.suggestions');
+                var disclaimer = document.querySelector('.disclaimer');
+                if (welcomeText) welcomeText.style.display = 'none';
+                if (suggestions) suggestions.style.display = 'none';
+                if (disclaimer) disclaimer.style.display = 'none';
                 
                 // Append thinking placeholder bubble
                 var loadingBubble = appendMessageBubble('Thinking...', 'bot');

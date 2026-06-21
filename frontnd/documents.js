@@ -70,7 +70,20 @@ async function fetchUploadedDocuments() {
         }
 
         container.innerHTML = "";
+        
+        const fplSelect = document.getElementById('fplDocSelect');
+        if (fplSelect) {
+            fplSelect.innerHTML = '<option value="">Select a document...</option>';
+        }
+
         files.forEach(filename => {
+            if (fplSelect) {
+                const opt = document.createElement('option');
+                opt.value = filename;
+                opt.textContent = filename;
+                fplSelect.appendChild(opt);
+            }
+
             const fileRow = document.createElement('div');
             fileRow.className = 'file-item';
             fileRow.style.display = 'flex';
@@ -147,36 +160,63 @@ async function extractDeadlines(filename) {
     }
 }
 
-async function calculateFPL(event) {
+async function calculateFPLFromDoc(event) {
     event.preventDefault();
-    const income = document.getElementById('fplIncome').value;
-    const householdSize = document.getElementById('fplHousehold').value;
-    const state = document.getElementById('fplState').value;
-    
+    const docName = document.getElementById('fplDocSelect').value;
     const resultDiv = document.getElementById('fplResult');
-    resultDiv.innerText = "Calculating...";
+    
+    if (!docName) {
+        alert("Please select a document.");
+        return;
+    }
+    
+    resultDiv.innerText = "Parsing document for income data... This may take a moment depending on the local model speed.";
     
     try {
-        const response = await fetch(`${BACKEND_URL}/api/fpl/calculate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ income: parseFloat(income), household_size: parseInt(householdSize), state: state })
+        const prompt = "Extract the applicant's annual income, household size, and state abbreviation. Return ONLY a valid JSON object with keys: income (number), household_size (number), state (string). Do not include any other text or markdown.";
+        const response = await fetch(`${BACKEND_URL}/api/documents/process?email=${encodeURIComponent(currentUserEmail)}&filename=${encodeURIComponent(docName)}&system_prompt=${encodeURIComponent(prompt)}`, {
+            method: 'POST'
         });
         
         if (response.ok) {
             const data = await response.json();
-            if (data.fpl_percent !== null) {
-                resultDiv.innerHTML = `
-                    <strong>Annual Income:</strong> $${data.annual_income}<br>
-                    <strong>Household Size:</strong> ${data.household_size}<br>
-                    <strong>100% FPL Amount:</strong> $${data.fpl_100_amount}<br>
-                    <strong>Your FPL Percentage:</strong> ${data.fpl_percent}%
-                `;
+            let extractedData;
+            try {
+                let rawText = data.slm_analysis;
+                let jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                extractedData = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+            } catch (e) {
+                resultDiv.innerText = "Could not parse income data from the document. The model output was not valid JSON.";
+                return;
+            }
+            
+            const fplResponse = await fetch(`${BACKEND_URL}/api/fpl/calculate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    income: parseFloat(extractedData.income || 0), 
+                    household_size: parseInt(extractedData.household_size || 1), 
+                    state: extractedData.state || "" 
+                })
+            });
+            
+            if (fplResponse.ok) {
+                const fplData = await fplResponse.json();
+                if (fplData.fpl_percent !== null) {
+                    resultDiv.innerHTML = `
+                        <strong>Parsed Annual Income:</strong> $${fplData.annual_income}<br>
+                        <strong>Parsed Household Size:</strong> ${fplData.household_size}<br>
+                        <strong>100% FPL Amount:</strong> $${fplData.fpl_100_amount}<br>
+                        <strong>Your FPL Percentage:</strong> ${fplData.fpl_percent}%
+                    `;
+                } else {
+                    resultDiv.innerText = fplData.notes.join(" ");
+                }
             } else {
-                resultDiv.innerText = data.notes.join(" ");
+                resultDiv.innerText = "Failed to calculate FPL with parsed values.";
             }
         } else {
-            resultDiv.innerText = "Failed to calculate FPL.";
+            resultDiv.innerText = "Failed to process document. Make sure the local LLM is running.";
         }
     } catch (error) {
         resultDiv.innerText = `Network error: ${error.message}`;

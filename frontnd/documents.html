@@ -92,24 +92,18 @@
 
             <section class="doc-card">
                 <h3>FPL Calculator</h3>
-                <p class="subtitle">Calculate your Federal Poverty Level percentage based on your income and household size.</p>
-                <form id="fplForm" onsubmit="calculateFPL(event)">
+                <p class="subtitle">Calculate your Federal Poverty Level percentage directly from an uploaded document.</p>
+                <form id="fplForm" onsubmit="calculateFPLFromDoc(event)">
                     <div style="margin-bottom: 15px;">
-                        <label for="fplIncome" style="display:block; margin-bottom:5px;">Annual Income ($)</label>
-                        <input type="number" id="fplIncome" required style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; background:var(--bg-primary); color:var(--text-primary);">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label for="fplHousehold" style="display:block; margin-bottom:5px;">Household Size</label>
-                        <input type="number" id="fplHousehold" required min="1" value="1" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; background:var(--bg-primary); color:var(--text-primary);">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label for="fplState" style="display:block; margin-bottom:5px;">State Abbreviation (e.g., CA, AK, HI)</label>
-                        <input type="text" id="fplState" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; background:var(--bg-primary); color:var(--text-primary);">
+                        <label for="fplDocSelect" style="display:block; margin-bottom:5px;">Select Document</label>
+                        <select id="fplDocSelect" required style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc; background:var(--bg-primary); color:var(--text-primary);">
+                            <option value="">Upload a document first</option>
+                        </select>
                     </div>
                     <button type="submit" class="btn-primary">Calculate FPL</button>
                 </form>
                 <div id="fplResult" style="margin-top: 15px; padding: 10px; background:var(--bg-secondary); border-radius: 4px;">
-                    Fill out the form to see your result.
+                    Select a document and calculate to see your result.
                 </div>
             </section>
         </main>

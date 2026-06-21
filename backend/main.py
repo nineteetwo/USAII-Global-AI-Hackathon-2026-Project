@@ -150,7 +150,11 @@ def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
             db.add(new_chat_log)
             db.commit()
 
-            return {"response": guidance_markdown}
+            return {
+                "response": guidance_markdown,
+                "thread_id": assigned_thread_id,
+                "id": new_chat_log.id
+            }
 
         # ROUTE B: Standard Document Verification / Eligibility Check (Default)
         print("[Engine] Routing interaction to standard RAG pipeline...")
@@ -169,7 +173,11 @@ def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
         db.add(new_chat_log)
         db.commit()
 
-        return {"response": eligibility_report}
+        return {
+            "response": eligibility_report,
+            "thread_id": assigned_thread_id,
+            "id": new_chat_log.id
+        }
 
     except Exception as e:
         print(f"[CRITICAL ERROR] Chat endpoint crashed: {str(e)}")
