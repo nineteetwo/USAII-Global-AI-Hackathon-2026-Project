@@ -19,9 +19,9 @@ def generate_rag_response(current_query: str, full_history: str = "", user_doc_p
     # Initialize local SLM backend engine 
     print("Initializing RAG backend engine...")
     backend = build_backend(
-        backend_name="ollama",
+        backend_name=None,
         host=None,
-        model="llama3.2:3b", 
+        model=None, 
         temperature=0.1,
         max_tokens=1024,
         timeout=300,

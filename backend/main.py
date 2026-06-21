@@ -119,7 +119,7 @@ def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
             print(f"[Engine] Found rejection marker for {rejected_program_name}. Launching fallback resource finder...")
             
             local_slm = build_backend(
-                backend_name="ollama", host=None, model="llama3.2:3b", 
+                backend_name=None, host=None, model=None, 
                 temperature=0.3, max_tokens=1024, timeout=300, quiet=True
             )
             
@@ -333,7 +333,7 @@ async def process_user_document(
         local_backend = build_backend(
             backend_name=None,   
             host=None,           
-            model="llama3.2:3b", # default Ollama model
+            model=None, # auto-detect model
             temperature=0.1,     
             max_tokens=2048,     
             timeout=120,         
