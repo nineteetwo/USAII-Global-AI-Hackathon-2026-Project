@@ -120,7 +120,7 @@ def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
             
             local_slm = build_backend(
                 backend_name=None, host=None, model=None, 
-                temperature=0.3, max_tokens=1024, timeout=300, quiet=True
+                temperature=0.3, max_tokens=8192, timeout=300, quiet=True
             )
             
             # Combine chat records into text representations

@@ -7,7 +7,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
-from parse_process.process_parse import build_backend
+from parse_process.process_parse import build_backend, extract
 from parse_process.assistance_finder import find_assistance, format_report_markdown
 
 def generate_rag_response(current_query: str, full_history: str = "", user_doc_path: str = "") -> str:
@@ -23,7 +23,7 @@ def generate_rag_response(current_query: str, full_history: str = "", user_doc_p
         host=None,
         model=None, 
         temperature=0.1,
-        max_tokens=1024,
+        max_tokens=8192,
         timeout=300,
         quiet=True
     )
@@ -45,8 +45,27 @@ def generate_rag_response(current_query: str, full_history: str = "", user_doc_p
             try:
                 from parse_process.doc_parser import parse_document, clean_text
                 raw_text = parse_document(resolved_path, quiet=True)
-                document_data = clean_text(raw_text)
-                print(f"RAG Pipeline: Successfully extracted {len(document_data)} chars from document.")
+                raw_doc_text = clean_text(raw_text)
+                print(f"RAG Pipeline: Successfully extracted {len(raw_doc_text)} chars from document.")
+                
+                # Extract relevant context from the document so it fits in the LLM prompt properly
+                system_prompt = (
+                    "You are a meticulous assistant helping to extract relevant demographic, financial, health, "
+                    "and personal context from a document. Extract any and all information that could be "
+                    "relevant to determining eligibility for public or nonprofit assistance programs. "
+                    "Output a detailed summary, preserving specific numbers, dates, statuses, and facts."
+                )
+                
+                document_data = extract(
+                    text=raw_doc_text,
+                    system_prompt=system_prompt,
+                    backend=backend,
+                    fmt="text",
+                    chunk_size=12000,
+                    overlap=500,
+                    quiet=True
+                )
+                print("RAG Pipeline: Successfully processed document into context summary.")
             except Exception as e:
                 print(f"Error parsing document: {e}")
                 document_data = ""
