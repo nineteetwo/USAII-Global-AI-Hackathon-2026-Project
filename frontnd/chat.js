@@ -100,6 +100,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         runtimeThreadSessionString = record.thread_id;
                     }
                     
+                    sidebarItem.addEventListener('click', function() {
+                        // Clear attachment when switching to an old thread to prevent cross-session contamination
+                        if (!currentActiveRowId || String(record.id) !== String(currentActiveRowId)) {
+                            localStorage.removeItem('calhelpr_last_upload_path');
+                            localStorage.removeItem('calhelpr_last_upload_name');
+                        }
+                    });
+                    
                     var sidebarTitle = record.user_query.length > 25 ? record.user_query.substring(0, 25) + "..." : record.user_query;
                     
                     sidebarItem.innerHTML = `
@@ -162,6 +170,39 @@ document.addEventListener('DOMContentLoaded', function () {
         window.history.replaceState({}, '', cleanUrl);
         runtimeThreadSessionString = null;
     }
+
+    var attachedDocIndicator = document.getElementById('attached-document-indicator');
+    var attachedDocName = document.getElementById('attached-document-name');
+    var removeAttachedDocBtn = document.getElementById('remove-attached-doc');
+
+    function updateAttachedDocUI() {
+        var docName = localStorage.getItem('calhelpr_last_upload_name');
+        if (docName && attachedDocIndicator) {
+            attachedDocName.innerText = docName;
+            attachedDocIndicator.style.display = 'flex';
+        } else if (attachedDocIndicator) {
+            attachedDocIndicator.style.display = 'none';
+        }
+    }
+
+    if (removeAttachedDocBtn) {
+        removeAttachedDocBtn.addEventListener('click', function() {
+            localStorage.removeItem('calhelpr_last_upload_path');
+            localStorage.removeItem('calhelpr_last_upload_name');
+            updateAttachedDocUI();
+        });
+    }
+
+    // Clear uploads when clicking New Chat
+    var newChatBtn = document.getElementById('nav-new-chat');
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', function() {
+            localStorage.removeItem('calhelpr_last_upload_path');
+            localStorage.removeItem('calhelpr_last_upload_name');
+        });
+    }
+
+    updateAttachedDocUI();
 
     // Interactive continuous multi-turn event listener loop
     if (chatInput && chatMessagesContainer) {
