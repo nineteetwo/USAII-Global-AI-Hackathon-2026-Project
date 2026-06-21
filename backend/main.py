@@ -72,24 +72,15 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
     
     return {"message": "Access granted", "email": user.email, "name": user.name}
 
-@app.get("/api/chat")
-def process_chat_get(text: str = "Hello"):
-    """Temporary GET route to bypass the 405 Method Error."""
-    from rag import generate_rag_response
-    ai_raw_output = generate_rag_response(text)
-    return {
-        "response": f"{ai_raw_output}\nℹ️ *Notice: Connected via bypass channel.*"
-    }
-
 @app.post("/api/chat")
 def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
+    """Handles chatbot conversations and invokes the assistance finder RAG workflow."""
     if not payload.text.strip():
         raise HTTPException(status_code=400, detail="Query text cannot be empty")
         
-    # Use the existing thread_id or assign a fresh one for a new conversation chain
     assigned_thread_id = payload.thread_id if payload.thread_id else f"thread_{int(time.time())}"
 
-    # Compile history using ONLY messages from this specific thread room
+    # Compile chat history for context continuity
     conversation_history_string = ""
     if payload.email:
         all_past_messages = (
@@ -101,12 +92,14 @@ def handle_chat_query(payload: ChatInput, db: Session = Depends(get_db)):
         for msg in all_past_messages:
             conversation_history_string += f"User: {msg.user_query}\nAI: {msg.ai_response}\n"
 
+    # Trigger assistance_finder pipeline
     compliance_wrapper = generate_rag_response(
         current_query=payload.text, 
         full_history=conversation_history_string, 
         user_doc_path=payload.uploaded_file_path or ""
     )
 
+    # Save conversation interaction to database logs
     db_chat = ChatMessage(
         user_email=payload.email,
         thread_id=assigned_thread_id,
@@ -270,7 +263,7 @@ async def process_user_document(
         local_backend = build_backend(
             backend_name=None,   
             host=None,           
-            model="qwen2.5:1.5b", # default Ollama model
+            model="llama3.2:3b", # default Ollama model
             temperature=0.1,     
             max_tokens=2048,     
             timeout=120,         
@@ -302,3 +295,14 @@ async def process_user_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred during processing: {str(e)}"
         )
+
+@app.delete("/api/documents")
+def delete_user_document(email: str = Query(...), filename: str = Query(...)):
+    user_folder_name = email.replace("@", "_").replace(".", "_")
+    file_path = os.path.join(UPLOAD_DIR, user_folder_name, filename)
+    
+    if os.path.exists(file_path):
+        os.remove(file_path) # Deletes file from disk storage layout
+        return {"message": f"Successfully deleted {filename}"}
+    else:
+        raise HTTPException(status_code=404, detail="File not found on system disk.")
