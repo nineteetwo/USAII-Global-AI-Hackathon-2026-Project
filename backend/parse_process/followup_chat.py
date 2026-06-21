@@ -189,7 +189,7 @@ Should the assistance matcher be rerun?
 def build_answer_prompt(profile_text, guide_text, db_text, history_text, question, rerun_note):
     return f"""
 === Applicant profile / assistance report ===
-{limit_text(profile_text, 15000)}
+{limit_text(profile_text, 9000)}
 
 === Previous guidance report ===
 {limit_text(guide_text, 4000)}
@@ -277,6 +277,7 @@ def main():
     print("Follow-up chat started.")
     print("Type 'exit' or 'quit' to stop.")
     print("Auto-rerun is", "OFF" if args.no_auto_rerun else "ON")
+    print("Commands: exit, quit, show_fpl")
     print()
 
     while True:
@@ -285,6 +286,15 @@ def main():
         if question.lower() in {"exit", "quit", "q"}:
             print("Chat ended.")
             break
+
+        if question.lower() == "show_fpl":
+            parsed_context = _try_parse_json(profile_text)
+            if isinstance(parsed_context, dict):
+                fpl = parsed_context.get("fpl_analysis") or (parsed_context.get("applicant_profile") or {}).get("fpl_analysis")
+                print(json.dumps(fpl or {"message": "No FPL analysis available yet."}, indent=2, ensure_ascii=False))
+            else:
+                print("No structured FPL analysis available in current context.")
+            continue
 
         if not question:
             continue

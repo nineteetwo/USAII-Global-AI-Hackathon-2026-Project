@@ -16,6 +16,10 @@ from parse_process.doc_parser import parse_document, clean_text
 from parse_process.process_parse import extract, build_backend
 from parse_process.guidance_generator import generate_guidance, format_guidance_markdown
 from parse_process.process_parse import build_backend
+from parse_process.deadline_tracker import build_deadline_report
+from parse_process.fpl_calculator import enrich_profile_with_fpl, calculate_fpl_snapshot
+from parse_process.caseworker_notes import build_case_note
+import json
 
 app = FastAPI(title="CalHelpr Backend")
 
@@ -379,3 +383,33 @@ def update_application_status(payload: TrackerStatusUpdate, db: Session = Depend
         }
         
     return {"status": "Success", "message": f"Status updated to {payload.status}"}
+
+class FPLRequest(BaseModel):
+    income: float
+    household_size: int
+    state: Optional[str] = ""
+
+@app.post("/api/fpl/calculate")
+def calculate_fpl(req: FPLRequest):
+    snapshot = calculate_fpl_snapshot(
+        {"annual_income": req.income, "household_size": req.household_size}, 
+        state=req.state
+    )
+    return snapshot
+
+@app.get("/api/documents/deadlines")
+def get_document_deadlines(email: str = Query(...), filename: str = Query(...)):
+    user_folder_name = email.replace("@", "_").replace(".", "_")
+    file_path = os.path.join(UPLOAD_DIR, user_folder_name, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found.")
+    
+    # We must import parse_document here or it's already imported
+    # It is imported at the top: from parse_process.doc_parser import parse_document, clean_text
+    raw_text = parse_document(file_path, quiet=True)
+    report = build_deadline_report(clean_text(raw_text))
+    return report
+
+@app.post("/api/caseworker/notes")
+def generate_caseworker_notes(report: dict):
+    return {"notes": build_case_note(report)}

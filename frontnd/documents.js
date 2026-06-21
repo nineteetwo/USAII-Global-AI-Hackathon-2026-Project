@@ -82,9 +82,14 @@ async function fetchUploadedDocuments() {
                     <i class="fa-regular fa-file-lines"></i>
                     <span class="file-name">${filename}</span>
                 </div>
-                <button class="delete-btn" onclick="deleteDocument('${filename}')" style="background:none; border:none; color:var(--emergency-bg, #e53935); cursor:pointer;">
-                    <i class="fa-solid fa-trash-can"></i>
-                </button>
+                <div>
+                    <button class="action-btn" onclick="extractDeadlines('${filename}')" style="background:var(--primary); border:none; color:white; padding: 4px 8px; border-radius: 4px; cursor:pointer; margin-right: 10px; font-size: 0.8rem;">
+                        <i class="fa-regular fa-clock"></i> Deadlines
+                    </button>
+                    <button class="delete-btn" onclick="deleteDocument('${filename}')" style="background:none; border:none; color:var(--emergency-bg, #e53935); cursor:pointer;">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
             `;
             container.appendChild(fileRow);
         });
@@ -109,5 +114,71 @@ async function deleteDocument(filename) {
         }
     } catch (error) {
         console.error("Error during deletion execution pipeline:", error);
+    }
+}
+
+async function extractDeadlines(filename) {
+    const statusDiv = document.getElementById('uploadStatus');
+    statusDiv.style.color = "var(--text-secondary)";
+    statusDiv.innerText = `Extracting deadlines from ${filename}...`;
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/documents/deadlines?email=${encodeURIComponent(currentUserEmail)}&filename=${encodeURIComponent(filename)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.deadlines && data.deadlines.length > 0) {
+                let report = `Found ${data.deadlines.length} deadlines for ${filename}:\n\n`;
+                data.deadlines.forEach(d => {
+                    report += `- ${d.date} (${d.days_until} days away): ${d.context}\n`;
+                });
+                alert(report);
+                statusDiv.innerText = "Deadlines extracted successfully.";
+            } else {
+                alert(`No deadlines found in ${filename}.`);
+                statusDiv.innerText = "No deadlines found.";
+            }
+        } else {
+            const err = await response.json();
+            alert(`Failed to extract deadlines: ${err.detail || 'Server error'}`);
+            statusDiv.innerText = "Failed to extract deadlines.";
+        }
+    } catch (error) {
+        alert(`Network error: ${error.message}`);
+    }
+}
+
+async function calculateFPL(event) {
+    event.preventDefault();
+    const income = document.getElementById('fplIncome').value;
+    const householdSize = document.getElementById('fplHousehold').value;
+    const state = document.getElementById('fplState').value;
+    
+    const resultDiv = document.getElementById('fplResult');
+    resultDiv.innerText = "Calculating...";
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/fpl/calculate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ income: parseFloat(income), household_size: parseInt(householdSize), state: state })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.fpl_percent !== null) {
+                resultDiv.innerHTML = `
+                    <strong>Annual Income:</strong> $${data.annual_income}<br>
+                    <strong>Household Size:</strong> ${data.household_size}<br>
+                    <strong>100% FPL Amount:</strong> $${data.fpl_100_amount}<br>
+                    <strong>Your FPL Percentage:</strong> ${data.fpl_percent}%
+                `;
+            } else {
+                resultDiv.innerText = data.notes.join(" ");
+            }
+        } else {
+            resultDiv.innerText = "Failed to calculate FPL.";
+        }
+    } catch (error) {
+        resultDiv.innerText = `Network error: ${error.message}`;
     }
 }

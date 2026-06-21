@@ -59,6 +59,7 @@ import textwrap
 import time
 import urllib.error
 import urllib.request
+import socket
 from pathlib import Path
 from typing import Any, Optional
 
@@ -95,7 +96,7 @@ def _http_post(url: str, payload: dict, timeout: int = 1000) -> dict:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
-    except TimeoutError as exc:
+    except (TimeoutError, socket.timeout) as exc:
         raise RuntimeError(
             f"Request to {url} timed out after {timeout} seconds. "
             "Try increasing --timeout, reducing prompt size, using --max-tokens 1024, "
@@ -284,6 +285,39 @@ def auto_detect_backend(quiet: bool = False):
     )
 
 
+def auto_select_model(backend: Backend, quiet: bool = False) -> str:
+    """Auto-select a local model when --model is omitted."""
+    preferred_keywords = ["llama3.2", "llama3.1", "llama3", "qwen2.5", "qwen", "mistral", "phi3", "gemma"]
+
+    if backend.name == "ollama":
+        data = _http_get(f"{backend.host}/api/ps")
+        running = []
+        for m in data.get("models", []):
+            name = m.get("name") or m.get("model")
+            if name:
+                running.append(name)
+        if running:
+            selected = running[0]
+            log(f"Auto-selected running Ollama model: {selected}", quiet)
+            return selected
+
+    models = [m for m in backend.list_models() if m]
+    if not models:
+        raise RuntimeError(
+            "No model was provided and no available models were found. "
+            "For Ollama, run: ollama pull llama3.2:3b"
+        )
+    lowered = [(m, m.lower()) for m in models]
+    for keyword in preferred_keywords:
+        for original, low in lowered:
+            if keyword in low:
+                log(f"Auto-selected available model: {original}", quiet)
+                return original
+    selected = models[0]
+    log(f"Auto-selected first available model: {selected}", quiet)
+    return selected
+
+
 def build_backend(backend_name, host, model, temperature, max_tokens, timeout, quiet):
     if backend_name and backend_name not in BACKENDS:
         sys.exit(f"[ERROR] Unknown backend '{backend_name}'. "
@@ -296,7 +330,10 @@ def build_backend(backend_name, host, model, temperature, max_tokens, timeout, q
         host = host or cls.default_host
 
     cls = BACKENDS[backend_name]
-    return cls(host, model, temperature, max_tokens, timeout)
+    backend = cls(host, model, temperature, max_tokens, timeout)
+    if not backend.model:
+        backend.model = auto_select_model(backend, quiet)
+    return backend
 
 
 # Document chunker
@@ -336,15 +373,43 @@ def chunk_text(text: str, chunk_size: int, overlap: int) -> list:
 
 # Result merger
 def _try_parse_json(text: str):
-    clean = re.sub(r"^```[a-z]*\n?", "", text.strip(), flags=re.IGNORECASE)
-    clean = re.sub(r"\n?```$", "", clean.strip())
-    try:
-        return json.loads(clean)
-    except json.JSONDecodeError as e:
-        clean += "\n}"
-        try: return json.loads(clean)
-        except: pass
+    """Parse model JSON robustly without trusting malformed output."""
+    if text is None:
         return None
+    clean = str(text).strip()
+    clean = re.sub(r"^```(?:json|JSON|[a-zA-Z0-9_-]+)?\s*", "", clean)
+    clean = re.sub(r"\s*```$", "", clean)
+
+    def attempt(s: str):
+        try:
+            return json.loads(s)
+        except json.JSONDecodeError:
+            return None
+
+    parsed = attempt(clean)
+    if parsed is not None:
+        return parsed
+
+    # Extract first plausible JSON object or array from surrounding prose.
+    starts = [i for i in (clean.find("{"), clean.find("[")) if i != -1]
+    if starts:
+        start = min(starts)
+        end = max(clean.rfind("}"), clean.rfind("]"))
+        if end > start:
+            candidate = clean[start:end + 1]
+            parsed = attempt(candidate)
+            if parsed is not None:
+                return parsed
+            clean = candidate
+
+    # Optional dependency: pip install json-repair
+    try:
+        from json_repair import repair_json
+        repaired = repair_json(clean)
+        return json.loads(repaired)
+    except Exception:
+        return None
+
 
 
 def merge_results(results: list, fmt: str) -> str:
@@ -498,7 +563,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Sampling temperature (default: 0.1).")
     ap.add_argument("--max-tokens", type=int, default=2048,  metavar="N",
                     help="Max tokens in model response (default: 2048).")
-    ap.add_argument("--timeout",    type=int, default=120,   metavar="S",
+    ap.add_argument("--timeout",    type=int, default=1000,   metavar="S",
                     help="HTTP timeout seconds (default: 120).")
     ap.add_argument("--list-models", action="store_true",
                     help="List available models on the backend and exit.")
@@ -587,7 +652,7 @@ def main():
 # Importable API
 __all__ = [
     "OllamaBackend", "OpenAICompatBackend", "LlamaCppBackend",
-    "build_backend", "extract", "chunk_text",
+    "build_backend", "auto_select_model", "extract", "chunk_text",
 ]
 
 if __name__ == "__main__":

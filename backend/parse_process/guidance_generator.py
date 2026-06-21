@@ -325,8 +325,8 @@ def generate_guidance(
     host: Optional[str] = None,
     model: str = "",
     temperature: float = 0.3,
-    max_tokens: int = 2048,
-    timeout: int = 120,
+    max_tokens: int = 4096,
+    timeout: int = 1000,
 ) -> dict:
     """
     Main entry point — designed to be called from an application-tracker
@@ -458,8 +458,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--host", metavar="URL")
     ap.add_argument("--model", default="", metavar="NAME")
     ap.add_argument("--temperature", type=float, default=0.3, metavar="F")
-    ap.add_argument("--max-tokens", type=int, default=2048, metavar="N")
-    ap.add_argument("--timeout", type=int, default=120, metavar="S")
+    ap.add_argument("--max-tokens", type=int, default=4096, metavar="N")
+    ap.add_argument("--timeout", type=int, default= 1000, metavar="S")
     ap.add_argument("--max-resources", type=int, default=4, metavar="N")
     ap.add_argument("--no-web-search", action="store_true")
     ap.add_argument("-o", "--output", metavar="PATH")

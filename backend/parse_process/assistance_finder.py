@@ -97,6 +97,17 @@ except ImportError:
     )
 
 
+# Import deterministic FPL/rules engine.
+# These functions keep income-threshold math out of the LLM.
+try:
+    from fpl_calculator import enrich_profile_with_fpl, deterministic_program_checks
+except ImportError:
+    sys.exit(
+        "[ERROR] Could not import fpl_calculator.py.\n"
+        "Place fpl_calculator.py in the same directory as assistance_finder.py."
+    )
+
+
 # Logging
 def log(msg: str, quiet: bool = False):
     if not quiet:
@@ -430,6 +441,7 @@ SYSTEM_PROMPT_PROFILE = textwrap.dedent("""\
       "household_size": integer|null,
       "household_members": [{"relationship": string, "age": integer|null}] | null,
       "annual_income": number|null,
+      "monthly_income": number|null,
       "income_notes": string|null,
       "employment_status": string|null,
       "age": integer|null,
@@ -456,6 +468,19 @@ SYSTEM_PROMPT_PROFILE = textwrap.dedent("""\
 
 
 def build_applicant_profile(document_data, conversations: list, backend, quiet: bool) -> dict:
+    # If the caller already supplied a structured applicant profile/report, avoid
+    # asking the LLM to re-create it unless new conversations must be merged.
+    if isinstance(document_data, dict):
+        if "applicant_profile" in document_data and not conversations:
+            return document_data["applicant_profile"]
+        looks_like_profile = (
+            "location" in document_data
+            and "needed_categories" in document_data
+            and ("summary" in document_data or "stated_needs" in document_data)
+        )
+        if looks_like_profile and not conversations:
+            return document_data
+
     if isinstance(document_data, (dict, list)):
         doc_text = json.dumps(document_data, indent=2, ensure_ascii=False)
     else:
@@ -476,7 +501,7 @@ def build_applicant_profile(document_data, conversations: list, backend, quiet: 
         return {
             "location": {"city": None, "state": None, "zip": None},
             "household_size": None, "household_members": None,
-            "annual_income": None, "income_notes": None,
+            "annual_income": None, "monthly_income": None, "income_notes": None,
             "employment_status": None, "age": None,
             "disability_status": None, "veteran_status": None,
             "citizenship_status": None, "dependents": None,
@@ -495,9 +520,9 @@ def build_applicant_profile(document_data, conversations: list, backend, quiet: 
 # Eligibility engine
 SYSTEM_PROMPT_ELIGIBILITY = textwrap.dedent("""\
     You are a careful, responsible benefits-eligibility analyst. You will be
-    given an applicant profile and the rules for ONE assistance program.
-    Produce a detailed, nuanced eligibility analysis — NEVER a simple
-    yes/no. Consider missing information honestly: if a required fact is
+    given an applicant profile, deterministic screening checks, and the rules
+    for ONE assistance program. Produce a detailed, nuanced eligibility
+    analysis — NEVER a simple yes/no. Consider missing information honestly: if a required fact is
     not in the profile, mark that criterion "unclear" rather than guessing,
     and list it under missing_information.
 
@@ -517,6 +542,11 @@ SYSTEM_PROMPT_ELIGIBILITY = textwrap.dedent("""\
       "summary": string
     }
 
+    IMPORTANT: Do not perform your own FPL arithmetic. If deterministic FPL
+    calculations are present, use those numbers as authoritative and explain
+    them. If deterministic checks say a hard requirement is not met, do not
+    override it unless the program rules describe an exception.
+
     Be conservative: do not mark "eligible" or "likely_eligible" unless the
     profile clearly supports it. Prefer "possibly_eligible_more_info_needed"
     or "insufficient_information" when uncertain. This analysis informs a
@@ -526,14 +556,23 @@ SYSTEM_PROMPT_ELIGIBILITY = textwrap.dedent("""\
 
 
 def assess_eligibility(profile: dict, program: dict, backend, quiet: bool) -> dict:
+    deterministic = deterministic_program_checks(
+        program=program,
+        profile=profile,
+        state_code=(profile.get("location") or {}).get("state") if isinstance(profile.get("location"), dict) else None,
+        needed_categories=profile.get("needed_categories") or [],
+    )
     profile_text = json.dumps(profile, indent=2, ensure_ascii=False)
     criteria_text = json.dumps(program.get("eligibility_criteria", []), indent=2, ensure_ascii=False)
+    deterministic_text = json.dumps(deterministic, indent=2, ensure_ascii=False)
 
     user_prompt = (
-        f"=== Applicant profile ===\n{profile_text}\n\n"
+        f"=== Applicant profile with deterministic FPL analysis ===\n{profile_text}\n\n"
+        f"=== Deterministic screening checks — treat these calculations as authoritative ===\n{deterministic_text}\n\n"
         f"=== Program: {program.get('name')} ===\n"
         f"Category: {', '.join(program.get('category', []))}\n"
         f"Description: {program.get('description', '')}\n"
+        f"Structured income rules: {json.dumps(program.get('income_rules', {}), ensure_ascii=False)}\n"
         f"Eligibility criteria:\n{criteria_text}\n"
         f"Benefits: {program.get('benefits_summary', '')}\n"
     )
@@ -554,12 +593,21 @@ def assess_eligibility(profile: dict, program: dict, backend, quiet: bool) -> di
             "_parse_failed": True,
         }
 
+    if deterministic.get("hard_fail") and parsed.get("status") in {"eligible", "likely_eligible"}:
+        parsed["status"] = "likely_ineligible"
+        parsed["confidence"] = "medium"
+        parsed["summary"] = (
+            "Deterministic screening found a hard requirement that appears not to be met. "
+            + parsed.get("summary", "")
+        )
+
     return {
         "program_id": program.get("id"),
         "program_name": program.get("name"),
         "category": program.get("category", []),
         "official_url": program.get("official_url"),
         "how_to_apply": program.get("how_to_apply"),
+        "deterministic_checks": deterministic,
         "eligibility_analysis": parsed,
     }
 
@@ -668,6 +716,10 @@ def find_assistance(
     profile_state = normalize_state(profile_location.get("state"))
     state_code = explicit_state or profile_state
 
+    # Deterministic FPL enrichment happens before program assessment. The LLM
+    # may explain these numbers, but it does not calculate them.
+    profile = enrich_profile_with_fpl(profile, state_code)
+
     needed_categories = profile.get("needed_categories") or ["general"]
 
     programs = load_database(db_path)
@@ -699,6 +751,7 @@ def find_assistance(
 
     return {
         "applicant_profile": profile,
+        "fpl_analysis": profile.get("fpl_analysis"),
         "resolved_state": state_code,
         "needed_categories": needed_categories,
         "matched_programs": matched_programs,
@@ -719,8 +772,16 @@ def _format_program_block(m: dict) -> str:
         "",
         ea.get("summary", ""),
         "",
-        "**Criteria breakdown:**",
     ]
+    det = m.get("deterministic_checks") or {}
+    if det.get("checks"):
+        lines.append("**Deterministic screening checks:**")
+        for c in det.get("checks", []):
+            lines.append(f"- *{c.get('name')}* — {c.get('assessment')}: {c.get('explanation')}")
+        lines.append("")
+    lines.extend([
+        "**Criteria breakdown:**",
+    ])
     for c in ea.get("criteria_assessment", []):
         lines.append(f"- *{c.get('criterion')}* — {c.get('assessment')}: {c.get('explanation')}")
     if ea.get("missing_information"):
@@ -748,6 +809,16 @@ def format_report_markdown(report: dict) -> str:
               profile.get("summary", "(no summary)"), "",
               f"**Needed categories:** {', '.join(report['needed_categories'])}",
               f"**Location:** {report.get('resolved_state') or 'unknown'}", ""]
+    fpl = profile.get("fpl_analysis") or {}
+    if fpl:
+        lines.extend([
+            "## Deterministic FPL Calculation",
+            f"**Household size:** {fpl.get('household_size') or 'unknown'}",
+            f"**Annual income used:** ${fpl.get('annual_income'):,.2f}" if fpl.get('annual_income') is not None else "**Annual income used:** unknown",
+            f"**100% FPL amount:** ${fpl.get('fpl_100_amount'):,.2f}" if fpl.get('fpl_100_amount') is not None else "**100% FPL amount:** unknown",
+            f"**Applicant FPL percentage:** {fpl.get('fpl_percent')}%" if fpl.get('fpl_percent') is not None else "**Applicant FPL percentage:** unknown",
+            ""
+        ])
 
     lines.append("## Programs Found in Database")
     if report["matched_programs"]:
@@ -881,7 +952,7 @@ def main():
 __all__ = [
     "find_assistance", "build_applicant_profile", "assess_eligibility",
     "load_database", "filter_programs", "format_report_markdown",
-    "normalize_state", "DISCLAIMER",
+    "normalize_state", "enrich_profile_with_fpl", "deterministic_program_checks", "DISCLAIMER",
 ]
 
 if __name__ == "__main__":
