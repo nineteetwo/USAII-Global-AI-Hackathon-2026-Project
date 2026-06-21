@@ -1,7 +1,7 @@
 const BACKEND_URL = "http://127.0.0.1:8000";
 
 // Dynamically check localStorage for the logged-in user's email
-const currentUserEmail = localStorage.getItem("user_email") || "guest";
+const currentUserEmail = localStorage.getItem("calhelpr_email") || "guest";
 
 document.addEventListener("DOMContentLoaded", fetchUploadedDocuments);
 
@@ -28,10 +28,16 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         });
 
         if (response.ok) {
+            const uploadData = await response.json();
+            // Store the file path so the chat page can attach it to requests
+            if (uploadData.saved_path) {
+                localStorage.setItem('calhelpr_last_upload_path', uploadData.saved_path);
+                localStorage.setItem('calhelpr_last_upload_name', uploadData.filename);
+            }
             statusDiv.style.color = "#27ae60";
-            statusDiv.innerText = "File uploaded successfully!";
+            statusDiv.innerText = `File uploaded: ${uploadData.filename}`;
             document.getElementById('uploadForm').reset();
-            
+
             // Instantly refresh the repository tracking view container
             fetchUploadedDocuments();
         } else {

@@ -157,13 +157,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 try {
                     var activeUserEmail = localStorage.getItem('calhelpr_email');
 
+                    var uploadedFilePath = localStorage.getItem('calhelpr_last_upload_path') || "";
+
                     var response = await fetch('http://127.0.0.1:8000/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
+                        body: JSON.stringify({
                             text: userText,
                             email: activeUserEmail ? activeUserEmail : null,
-                            thread_id: runtimeThreadSessionString // Pass current thread group key
+                            thread_id: runtimeThreadSessionString,
+                            uploaded_file_path: uploadedFilePath
                         }),
                     });
 

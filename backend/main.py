@@ -30,7 +30,8 @@ app.add_middleware(
 )
 
 # Directory configuration for user uploaded files
-UPLOAD_DIR = "./uploads"
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # --- Request Data Validations ---

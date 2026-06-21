@@ -31,40 +31,53 @@ def generate_rag_response(current_query: str, full_history: str = "", user_doc_p
     # Extract context from the document if the user passed an active file path
     document_data = ""
     if user_doc_path:
-        # Clean up the path string
         user_doc_path = user_doc_path.strip()
-        
-        # If it's just a raw filename or a relative path, resolve it explicitly
+
+        # Resolve relative paths against the backend directory (where this file lives)
         if not os.path.isabs(user_doc_path):
-            # Extract just the file name in case frontend passed an old 'uploads/' prefix
-            base_filename = os.path.basename(user_doc_path)
-            
-            # Target the parse_process folder explicitly relative to CURRENT_DIR
-            resolved_path = os.path.join(CURRENT_DIR, "parse_process", base_filename)
+            resolved_path = os.path.normpath(os.path.join(CURRENT_DIR, user_doc_path))
         else:
             resolved_path = user_doc_path
 
-        print(f"RAG Pipeline: Searching for processed profile at: {resolved_path}")
+        print(f"RAG Pipeline: Looking for document at: {resolved_path}")
 
         if os.path.exists(resolved_path):
             try:
-                with open(resolved_path, "r", encoding="utf-8", errors="replace") as f:
-                    file_content = f.read().strip()
-                
-                # Attempt to decode as JSON if it's already structured; otherwise, fall back to string
-                try:
-                    document_data = json.loads(file_content)
-                    print("RAG Pipeline: Successfully loaded structured profile JSON data.")
-                except json.JSONDecodeError:
-                    document_data = file_content
-                    print("RAG Pipeline: Successfully loaded profile plain-text data.")
-                    
+                from parse_process.doc_parser import parse_document, clean_text
+                raw_text = parse_document(resolved_path, quiet=True)
+                document_data = clean_text(raw_text)
+                print(f"RAG Pipeline: Successfully extracted {len(document_data)} chars from document.")
             except Exception as e:
-                print(f"Error reading document context: {e}")
+                print(f"Error parsing document: {e}")
                 document_data = ""
         else:
-            print(f"PATH MISMATCH: File does not exist inside parse_process directory. Path tried: {resolved_path}")
-            document_data = ""
+            print(f"RAG Pipeline: Document not found at: {resolved_path}")
+
+    # Fall back to pre-generated profile.json + report.md when no uploaded doc is available
+    if not document_data:
+        profile_path = os.path.join(CURRENT_DIR, "parse_process", "profile.json")
+        report_path = os.path.join(CURRENT_DIR, "parse_process", "report.md")
+
+        if os.path.exists(profile_path):
+            try:
+                with open(profile_path, "r", encoding="utf-8") as f:
+                    document_data = json.load(f)
+                print("RAG Pipeline: Loaded profile.json as fallback context.")
+            except Exception as e:
+                print(f"RAG Pipeline: Could not load profile.json: {e}")
+
+        if os.path.exists(report_path):
+            try:
+                with open(report_path, "r", encoding="utf-8") as f:
+                    report_context = f.read()
+                # Append the pre-generated report as additional conversation context
+                if isinstance(document_data, dict):
+                    document_data["prior_report"] = report_context
+                elif not document_data:
+                    document_data = report_context
+                print("RAG Pipeline: Loaded report.md as fallback context.")
+            except Exception as e:
+                print(f"RAG Pipeline: Could not load report.md: {e}")
 
     # Format conversations cleanly into strings, checking for None types safely
     # Ensure inputs are strings, default to empty string if None
@@ -95,15 +108,6 @@ def generate_rag_response(current_query: str, full_history: str = "", user_doc_p
     try:
         print("Running assistance matching analysis...")
 
-        # Output contents of report.md directly rather than regenerating report 
-        # report_path = os.path.join(CURRENT_DIR, "parse_process", "report.md")
-        # if os.path.exists(report_path):
-        #     try:
-        #         with open(report_path, "r", encoding="utf-8") as f:
-        #             return f.read()
-        #     except Exception as e:
-        #         return f"Error reading report: {str(e)}"
-            
         report = find_assistance(
             document_data=document_data,
             conversations=conversations_list,
